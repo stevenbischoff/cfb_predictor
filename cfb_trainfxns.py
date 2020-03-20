@@ -5,9 +5,9 @@ import copy
 class NeuralNet():
   def __init__(self, 
                n, 
-               learn_rate = 0.0001, 
+               learn_rate = 0.00001, 
                year_discount = 0,
-               tol = 0.001):
+               tol = 0.0001):
     self.learn = learn_rate
     self.year_discount = year_discount
     self.tol = tol
