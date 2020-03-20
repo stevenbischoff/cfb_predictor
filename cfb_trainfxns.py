@@ -56,18 +56,19 @@ class NeuralNet():
       return
     if game[2] == None:
       return
+
     X2 = game[n_cols//2 + 12:].astype('float32')
     s2,F2 = self.feedforward_train(X2)
 
-    ds2dm2 = s2*(1-s2)                
+    ds2dm2 = s2*(1 - s2)                
     dm2dW2 = F2
     ds2dW2 = ds2dm2*dm2dW2
     ds2db2 = ds2dm2
 
     dm2dF2 = self.W2
-    dF2dG2 = F2*(1-F2)
+    dF2dG2 = F2*(1 - F2)
     dm2dG2 = dm2dF2*dF2dG2
-    dG2dW1 = X2.reshape((n_cols)//2,1)
+    dG2dW1 = X2.reshape((n_cols)//2, 1)
     dm2dW1 = np.dot(dG2dW1, dm2dG2.reshape(1, n_cols//4))
     ds2dW1 = ds2dm2*dm2dW1
     dm2db1 = dm2dG2
@@ -76,16 +77,16 @@ class NeuralNet():
     X1 = game[12:n_cols//2 + 12].astype('float32')
     s1,F1 = self.feedforward_train(X1)
 
-    ds1dm1 = s1*(1-s1)                
+    ds1dm1 = s1*(1 - s1)                
     dm1dW2 = F1
     ds1dW2 = ds1dm1*dm1dW2
     ds1db2 = ds1dm1
 
     dm1dF1 = self.W2
-    dF1dG1 = F1*(1-F1)
+    dF1dG1 = F1*(1 - F1)
     dm1dG1 = dm1dF1*dF1dG1
-    dG1dW1 = X1.reshape(n_cols//2,1)
-    dm1dW1 = np.dot(dG1dW1, dm1dG1.reshape(1,n_cols//4))
+    dG1dW1 = X1.reshape(n_cols//2, 1)
+    dm1dW1 = np.dot(dG1dW1, dm1dG1.reshape(1, n_cols//4))
     ds1dW1 = ds1dm1*dm1dW1
     dm1db1 = dm1dG1
     ds1db1 = ds1dm1*dm1db1
@@ -94,7 +95,7 @@ class NeuralNet():
     y_pred = self.margin_predict(s1, s2, neutral)
     
     season = game[4]
-    r = 1 - self.year_discount*(last_year-season)    
+    r = 1 - self.year_discount*(last_year - season)    
     game_error = game[7] - y_pred
     self.total_loss += r*abs(game_error)
     self.count += r
@@ -127,26 +128,6 @@ class NeuralNet():
     self.test_loss = 0
     self.count = 0
     np.apply_along_axis(self.game_error, 1, test, last_year, n_cols)
-    """for i in range(len(test)):      
-      if test.loc[i, 'away_conference'] == None:
-        continue
-      elif test.loc[i, 'home_conference'] == None:
-        continue
-
-      X1 = test.loc[i, test.columns[12:n_cols//2 + 12]].astype('float32')
-      X2 = test.loc[i, test.columns[n_cols//2 + 12:]].astype('float32')
-      
-      s1 = self.feedforward_ratingscalc(X1)
-      s2 = self.feedforward_ratingscalc(X2)
-      
-      neutral = test.loc[i, 'neutral']      
-      y_pred = self.margin_predict(s1, s2, neutral)
-
-      season = test.loc[i, 'season']
-      r = 1 - self.year_discount*(last_year-season)
-      test_loss += r*abs(test.loc[i, 'y_actual'] - y_pred)
-      count += r"""
-
     self.test_error = self.test_loss/self.count
   
 
@@ -170,11 +151,9 @@ class NeuralNet():
     self.test_loss += r*abs(game[7] - y_pred)
     self.count += r
     
-
-    
+ 
   def assess(self, counter, threshold):   
-    if self.test_error > (self.best_test_error - self.tol) and \
-       self.n_worse >= 2 and counter >= threshold:
+    if self.test_error > (self.best_test_error - self.tol) and self.n_worse >= 2 and counter >= threshold:
       self.switch = 0
       self.W1 = copy.deepcopy(self.W1_best)
       self.W2 = copy.deepcopy(self.W2_best)
@@ -199,7 +178,7 @@ def sigmoid(x):
 def ratings_calc(sos, nn, game_data, last_year):
   game_data1 = game_data[(game_data.week == 20)&(game_data.season < last_year)]
   col_cutoff = (len(game_data1.columns)-12)//2 + 12
-  np.apply_along_axis(team_rating,1,game_data1,sos,game_data,nn,col_cutoff)
+  np.apply_along_axis(team_rating, 1, game_data1, sos, game_data, nn, col_cutoff)
 
 
 def team_rating(tg, sos, game_data, nn, col_cutoff):
