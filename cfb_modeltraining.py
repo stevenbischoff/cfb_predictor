@@ -6,12 +6,12 @@ from cfb_trainfxns import *
 from cfb_datafxns import *
 
 def train(first_year, last_year, game_data='adv', window=2,
-          train_size=0.8, learn_rate=0.00001, tol=0.002,
+          train_size=0.8, learn_rate=0.00001, tol=0.001,
           n_learn_rate_changes=2, year_discount=0,
           verbose=True):
 
-  if len(game_data) < 5:
-    game_data = data_gather(first_year, last_year+1, game_data)#get rid of +1
+  if len(game_data) < 4:
+    game_data = data_gather(first_year, last_year, game_data)
   
   game_data, sos = data_init(game_data,first_year,last_year)
 
