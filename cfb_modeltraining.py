@@ -5,8 +5,8 @@ from cfb_trainfxns import *
 from cfb_datafxns import *
 
 def train(first_year, last_year, game_data='adv', window=2,
-          train_size=0.8, learn_rate=0.00001, tol=0.0001,
-          n_learn_rate_changes=2, year_discount=0,
+          train_size=0.8, learn_rate=0.0001, tol=0.0001,
+          n_learn_rate_changes=3, year_discount=0,
           verbose=True):
 
   if len(game_data) < 4:
@@ -85,6 +85,8 @@ def train(first_year, last_year, game_data='adv', window=2,
       j += 1
   
   if verbose == True:
+    print()
+    print('Final Week Errors')
     for nn in nn_list:
       print('Train Error:', round(nn.train_error,5), 'Test Error:', round(nn.test_error,5))
 
