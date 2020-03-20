@@ -189,7 +189,7 @@ def team_sos(team_info, sos, game_data, first_year):
       tg = team_games[team_games.season == season].sort_values('week')
       opps = tg.iloc[-1].home_opponents[:-1]
       a = np.array(
-        [sos.loc[sos.Team == opp, str(season)+'Rating'] for opp in opps]) #.values[0]
+        [sos.loc[sos.Team == opp, str(season)+'Rating'].values[0] for opp in opps]) 
       b=pd.Series(np.concatenate([[0.5],np.cumsum(a)/np.arange(1,len(a)+1)]),
                   tg.index,
                   dtype='float32')
