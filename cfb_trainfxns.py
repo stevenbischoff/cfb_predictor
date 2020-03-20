@@ -5,9 +5,10 @@ import copy
 class NeuralNet():
   def __init__(self, 
                n, 
-               learn_rate = 0.00001, 
+               learn_rate = 0.0001, 
                year_discount = 0,
-               tol = 0.0001):
+               tol = 0.0001): 
+    
     self.learn = learn_rate
     self.year_discount = year_discount
     self.tol = tol
@@ -25,26 +26,31 @@ class NeuralNet():
     self.n_worse = 0
     self.switch = 1
 
-  def feedforward_train(self, X1):
+    
+  def feedforward_train(self, X1):    
     F1 = sigmoid(np.dot(self.W1.T, X1) + self.b1)
     return sigmoid(np.dot(self.W2, F1) + self.b2), F1
 
-  def feedforward_ratingscalc(self, X1):
+
+  def feedforward_ratingscalc(self, X1):        
     return sigmoid(np.dot(self.W2, sigmoid(np.dot(self.W1.T, X1) + self.b1)) + self.b2)
 
-  def margin_predict(self, s1, s2, neutral):
+
+  def margin_predict(self, s1, s2, neutral):       
     if neutral == False:
       return self.m*(s1 - s2) + self.a            
     else:
       return self.m*(s1 - s2)
+ 
     
-  def epoch(self, train, last_year):
+  def epoch(self, train, last_year):   
     n_cols = len(train.columns) - 12
     self.total_loss = 0
     self.count = 0
     np.apply_along_axis(self.update, 1, train, last_year, n_cols)
     self.train_error = self.total_loss/self.count
 
+    
   def update(self, game, last_year, n_cols):    
     if game[3] == None:
       return
@@ -89,11 +95,11 @@ class NeuralNet():
     
     season = game[4]
     r = 1 - self.year_discount*(last_year-season)    
-    diff = game[7] - y_pred
-    self.total_loss += r*abs(diff)
+    game_error = game[7] - y_pred
+    self.total_loss += r*abs(game_error)
     self.count += r
 
-    dLdy_pred = -2*diff
+    dLdy_pred = -2*game_error
     
     dy_preddW2 = self.m*(ds1dW2 - ds2dW2)
     dLdW2 = dLdy_pred*dy_preddW2
@@ -115,11 +121,13 @@ class NeuralNet():
     self.W1 -= r*self.learn*dLdW1
     self.b1 -= r*self.learn*dLdb1
 
-  def error_check(self, test, last_year):
+    
+  def error_check(self, test, last_year):    
     n_cols = len(test.columns) - 12
-    test_loss = 0
-    count = 0
-    for i in range(len(test)):      
+    self.test_loss = 0
+    self.count = 0
+    np.apply_along_axis(self.game_error, 1, test, last_year, n_cols)
+    """for i in range(len(test)):      
       if test.loc[i, 'away_conference'] == None:
         continue
       elif test.loc[i, 'home_conference'] == None:
@@ -137,11 +145,34 @@ class NeuralNet():
       season = test.loc[i, 'season']
       r = 1 - self.year_discount*(last_year-season)
       test_loss += r*abs(test.loc[i, 'y_actual'] - y_pred)
-      count += r
+      count += r"""
 
-    self.test_error = test_loss/count
+    self.test_error = self.test_loss/self.count
+  
 
-  def assess(self, counter, threshold):
+  def game_error(self, game, last_year, n_cols):
+    if game[3] == None:
+      return
+    elif game[2] == None:
+      return
+    
+    X1 = game[12:n_cols//2 + 12].astype('float32')
+    X2 = game[n_cols//2 + 12:].astype('float32')
+    
+    s1 = self.feedforward_ratingscalc(X1)
+    s2 = self.feedforward_ratingscalc(X2)
+
+    neutral = game[6]      
+    y_pred = self.margin_predict(s1, s2, neutral)
+
+    season = game[4]
+    r = 1 - self.year_discount*(last_year - season)
+    self.test_loss += r*abs(game[7] - y_pred)
+    self.count += r
+    
+
+    
+  def assess(self, counter, threshold):   
     if self.test_error > (self.best_test_error - self.tol) and \
        self.n_worse >= 2 and counter >= threshold:
       self.switch = 0
@@ -160,13 +191,16 @@ class NeuralNet():
       self.b2_best = copy.deepcopy(self.b2)
       self.a_best = copy.deepcopy(self.a)
 
+        
 def sigmoid(x):
   return 1 / (1 + np.exp(-x))
-  
+ 
+    
 def ratings_calc(sos, nn, game_data, last_year):
   game_data1 = game_data[(game_data.week == 20)&(game_data.season < last_year)]
   col_cutoff = (len(game_data1.columns)-12)//2 + 12
   np.apply_along_axis(team_rating,1,game_data1,sos,game_data,nn,col_cutoff)
+
 
 def team_rating(tg, sos, game_data, nn, col_cutoff):
   team = tg[0]
@@ -178,6 +212,11 @@ def team_rating(tg, sos, game_data, nn, col_cutoff):
                 'home_last_rating'] = s1
   game_data.loc[((game_data.away_team == team)&(game_data.season == season+1)),
                 'away_last_rating'] = s1
+
+    
+def sos_calc(sos,game_data,first_year):
+  np.apply_along_axis(team_sos,1,sos,sos,game_data,first_year)
+
 
 def team_sos(team_info, sos, game_data, first_year):
   team = team_info[0]
@@ -200,6 +239,3 @@ def team_sos(team_info, sos, game_data, first_year):
       game_data.loc[tg_away_index,'away_SOS'] = b.loc[tg_away_index]
       
     season+=1
-
-def sos_calc(sos,game_data,first_year):
-  np.apply_along_axis(team_sos,1,sos,sos,game_data,first_year)
