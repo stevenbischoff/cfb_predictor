@@ -30,20 +30,19 @@ class NeuralNet():
     return sigmoid(np.dot(self.W2, F1) + self.b2), F1
 
   def feedforward_ratingscalc(self, X1):
-    return sigmoid(
-      np.dot(self.W2, sigmoid(np.dot(self.W1.T, X1) + self.b1)) + self.b2)
+    return sigmoid(np.dot(self.W2, sigmoid(np.dot(self.W1.T, X1) + self.b1)) + self.b2)
 
   def margin_predict(self, s1, s2, neutral):
     if neutral == False:
-      return self.m*(s1-s2) + self.a            
+      return self.m*(s1 - s2) + self.a            
     else:
-      return self.m*(s1-s2)
+      return self.m*(s1 - s2)
     
   def epoch(self, train, last_year):
     n_cols = len(train.columns) - 12
     self.total_loss = 0
     self.count = 0
-    np.apply_along_axis(self.update,1,train,last_year,n_cols)
+    np.apply_along_axis(self.update, 1, train, last_year, n_cols)
     self.train_error = self.total_loss/self.count
 
   def update(self, game, last_year, n_cols):    
