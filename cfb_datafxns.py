@@ -1,6 +1,5 @@
 import pandas as pd
 import numpy as np
-from statistics import median
 from cfb_datascrape import *
 
 
