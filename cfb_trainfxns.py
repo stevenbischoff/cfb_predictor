@@ -1,6 +1,5 @@
 import numpy as np
 import pandas as pd
-import copy
     
 class NeuralNet():
   def __init__(self, n, learn_rate = 0.0001, year_discount = 0,
@@ -18,11 +17,8 @@ class NeuralNet():
 
     self.train_error = 0.0
     self.test_error = 0.0
-    self.best_test_error = 100
+    self.best_test_error = 1000
     self.n_worse = 0
-
-    self.error1 = 500
-    self.error2 = 1000
     self.switch = 1
 
   def feedforward_train(self, X1):
