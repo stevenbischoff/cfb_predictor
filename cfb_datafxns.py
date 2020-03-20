@@ -3,6 +3,7 @@ import numpy as np
 from statistics import median
 from cfb_datascrape import *
 
+
 def data_gather(first_year, last_year, data_type = 'adv'):
 
   tot = pd.DataFrame()
@@ -65,12 +66,10 @@ def data_gather(first_year, last_year, data_type = 'adv'):
     talent.talent = talent.talent.astype('float32')
     talent.talent /= max(talent.talent)
     season_data = season_data.merge(talent,how='left',on='team')
-
     game_data = game_data.merge(season_data,
                                 left_on = ['home_team','away_team','week'],
                                 right_on = ['team','opponent','week']
                                 ).drop(columns = ['team','opponent'])
-
     for col in game_data.columns[12:]:
       game_data = game_data.rename(columns = {col:'home_'+col})
 
@@ -78,13 +77,13 @@ def data_gather(first_year, last_year, data_type = 'adv'):
                                 left_on = ['away_team','home_team','week'],
                                 right_on = ['team','opponent','week'])
     game_data = game_data.drop(columns = ['team','opponent'])
-
     for col in game_data.columns[(len(game_data.columns)-12)//2 + 12:]:
       game_data = game_data.rename(columns = {col:'away_'+col})
 
     tot = pd.concat([tot,game_data])
     
   return tot
+
 
 def data_init(game_data,first_year,last_year):
 
@@ -121,8 +120,9 @@ def data_init(game_data,first_year,last_year):
     sos[str(season)+'Rating'] = rating_list
     
   game_data = game_data.sample(frac=1).reset_index(drop=True)
-
+  
   return game_data, sos
+
 
 def custom_train_test_split(game_data, train_size, first_year, last_year,
                             first_week, last_week):
