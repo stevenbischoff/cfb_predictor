@@ -5,7 +5,7 @@ from cfb_trainfxns import *
 from cfb_datafxns import *
 
 def train(first_year, last_year, game_data='adv', window=2,
-          train_size=0.8, learn_rate=0.00001, tol=0.001,
+          train_size=0.8, learn_rate=0.00001, tol=0.0001,
           n_learn_rate_changes=2, year_discount=0,
           verbose=True):
 
@@ -35,7 +35,7 @@ def train(first_year, last_year, game_data='adv', window=2,
         
         nn.epoch(train, last_year)     
         nn.error_check(test, last_year)
-        nn.assess(i, 4)
+        nn.assess(i, 8)
             
         if verbose == True:
           print(week, 'Train Error:', round(nn.train_error,5), 'Test Error:', round(nn.test_error,5))
