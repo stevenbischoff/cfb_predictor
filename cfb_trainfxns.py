@@ -1,8 +1,12 @@
 import numpy as np
 import pandas as pd
+import copy
     
 class NeuralNet():
-  def __init__(self, n, learn_rate = 0.0001, year_discount = 0,
+  def __init__(self, 
+               n, 
+               learn_rate = 0.0001, 
+               year_discount = 0,
                tol = 0.001):
     self.learn = learn_rate
     self.year_discount = year_discount
@@ -45,47 +49,41 @@ class NeuralNet():
   def update(self, game, last_year, n_cols):    
     if game[3] == None:
       return
-      s2,ds2dW2,ds2db2,ds2dW1,ds2db1 = 0.2,0,0,0,0      
-    else:
-      X2 = game[n_cols//2 + 12:].astype('float32')
-      s2,F2 = self.feedforward_train(X2)
-      
-      ds2dm2 = s2*(1-s2)                
-      dm2dW2 = F2
-      ds2dW2 = ds2dm2*dm2dW2
-      ds2db2 = ds2dm2
-      
-      dm2dF2 = self.W2
-      dF2dG2 = F2*(1-F2)
-      dm2dG2 = dm2dF2*dF2dG2
-      dG2dW1 = X2.reshape((n_cols)//2,1)
-      dm2dW1 = np.dot(dG2dW1, dm2dG2.reshape(
-        1, n_cols//4))
-      ds2dW1 = ds2dm2*dm2dW1
-      dm2db1 = dm2dG2
-      ds2db1 = ds2dm2*dm2db1
-               
     if game[2] == None:
       return
-      s1,ds1dW2,ds1db2,ds1dW1,ds1db1 = 0.2,0,0,0,0      
-    else:
-      X1 = game[12:n_cols//2 + 12].astype('float32')
-      s1,F1 = self.feedforward_train(X1)
-      
-      ds1dm1 = s1*(1-s1)                
-      dm1dW2 = F1
-      ds1dW2 = ds1dm1*dm1dW2
-      ds1db2 = ds1dm1
-      
-      dm1dF1 = self.W2
-      dF1dG1 = F1*(1-F1)
-      dm1dG1 = dm1dF1*dF1dG1
-      dG1dW1 = X1.reshape(n_cols//2,1)
-      dm1dW1 = np.dot(dG1dW1, dm1dG1.reshape(
-        1,n_cols//4))
-      ds1dW1 = ds1dm1*dm1dW1
-      dm1db1 = dm1dG1
-      ds1db1 = ds1dm1*dm1db1
+    X2 = game[n_cols//2 + 12:].astype('float32')
+    s2,F2 = self.feedforward_train(X2)
+
+    ds2dm2 = s2*(1-s2)                
+    dm2dW2 = F2
+    ds2dW2 = ds2dm2*dm2dW2
+    ds2db2 = ds2dm2
+
+    dm2dF2 = self.W2
+    dF2dG2 = F2*(1-F2)
+    dm2dG2 = dm2dF2*dF2dG2
+    dG2dW1 = X2.reshape((n_cols)//2,1)
+    dm2dW1 = np.dot(dG2dW1, dm2dG2.reshape(1, n_cols//4))
+    ds2dW1 = ds2dm2*dm2dW1
+    dm2db1 = dm2dG2
+    ds2db1 = ds2dm2*dm2db1
+
+    X1 = game[12:n_cols//2 + 12].astype('float32')
+    s1,F1 = self.feedforward_train(X1)
+
+    ds1dm1 = s1*(1-s1)                
+    dm1dW2 = F1
+    ds1dW2 = ds1dm1*dm1dW2
+    ds1db2 = ds1dm1
+
+    dm1dF1 = self.W2
+    dF1dG1 = F1*(1-F1)
+    dm1dG1 = dm1dF1*dF1dG1
+    dG1dW1 = X1.reshape(n_cols//2,1)
+    dm1dW1 = np.dot(dG1dW1, dm1dG1.reshape(1,n_cols//4))
+    ds1dW1 = ds1dm1*dm1dW1
+    dm1db1 = dm1dG1
+    ds1db1 = ds1dm1*dm1db1
 
     neutral = game[6]
     y_pred = self.margin_predict(s1, s2, neutral)
