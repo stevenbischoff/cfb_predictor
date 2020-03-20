@@ -169,7 +169,7 @@ def ratings_calc(sos, nn, game_data, last_year):
   col_cutoff = (len(game_data1.columns)-12)//2 + 12
   np.apply_along_axis(team_rating,1,game_data1,sos,game_data,nn,col_cutoff)
 
-def team_rating(tg, sos, game_data, nn, col_cutoff, last_year):
+def team_rating(tg, sos, game_data, nn, col_cutoff):
   team = tg[0]
   season = tg[4]
 
