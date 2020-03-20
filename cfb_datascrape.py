@@ -1,6 +1,7 @@
 import requests
 import pandas as pd
 
+
 def adv_data_scrape(year):
 
   base_url = 'https://api.collegefootballdata.com/stats/game/advanced'    
@@ -24,6 +25,7 @@ def adv_data_scrape(year):
     
   return pd.concat([reg_df,post_df])
 
+
 def games_scrape(year):
 
   base_url = 'https://api.collegefootballdata.com/games'
@@ -46,6 +48,7 @@ def games_scrape(year):
     raise Exception('Request failed with status code: '+str(response.status_code))
     
   return pd.concat([reg_games_df,post_games_df])
+
 
 def talent_scrape(year):
   base_url = 'https://api.collegefootballdata.com/talent'
