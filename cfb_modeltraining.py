@@ -1,6 +1,5 @@
 import pandas as pd
 import numpy as np
-import math
 import copy
 from cfb_trainfxns import *
 from cfb_datafxns import *
