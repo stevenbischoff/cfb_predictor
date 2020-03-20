@@ -42,7 +42,7 @@ def train(first_year, last_year, game_data='adv', window=2,
           
         if week == 13:
           for p in range(2):   
-            ratings_calc(sos, nn, game_data)
+            ratings_calc(sos, nn, game_data, last_year)
             sos_calc(sos, game_data, first_year)
     i += 1
 
@@ -79,9 +79,13 @@ def train(first_year, last_year, game_data='adv', window=2,
 
           if week == 13:
             for p in range(2):    
-              ratings_calc(sos, nn, game_data)
+              ratings_calc(sos, nn, game_data, last_year)
               sos_calc(sos, game_data, first_year)
       i += 1
       j += 1
+  
+  if verbose == True:
+    for nn in nn_list:
+      print('Train Error:', round(nn.train_error,5), 'Test Error:', round(nn.test_error,5))
 
   return nn_list, sos, game_data
