@@ -3,27 +3,28 @@ import numpy as np
 from cfb_datascrape import *
 
 
-def data_gather(first_year, last_year, data_type = 'adv'):
+def data_gather(first_year, last_year, data_type = 'adv', verbose = True):
 
   tot = pd.DataFrame()
 
   for year in range(first_year, last_year+1):
-    print(year)
+    if verbose == True:
+      print(year)
 
     games = games_scrape(year)
     game_data = pd.DataFrame({'home_team':games.home_team,
-                         'away_team':games.away_team,
-                         'home_conference':games.home_conference,
-                         'away_conference':games.away_conference,
-                         'season':games.season,
-                         'week':games.week,
-                         'neutral':games.neutral_site,
-                         'y_actual':games.home_points - games.away_points,
-                         'home_points':games.home_points,
-                         'away_points':games.away_points,
-                         'home_opponents':None,
-                         'away_opponents':None
-                         }
+                              'away_team':games.away_team,
+                              'home_conference':games.home_conference,
+                              'away_conference':games.away_conference,
+                              'season':games.season,
+                              'week':games.week,
+                              'neutral':games.neutral_site,
+                              'y_actual':games.home_points - games.away_points,
+                              'home_points':games.home_points,
+                              'away_points':games.away_points,
+                              'home_opponents':None,
+                              'away_opponents':None
+                              }
                             )
 
     if data_type == 'adv':
@@ -44,15 +45,14 @@ def data_gather(first_year, last_year, data_type = 'adv'):
     game_cols = game_data.columns
     for team in fbs_teams:
       season_data = season_data.append(
-        pd.Series([20,team,team]+[None]*n_cols,index=season_cols),
-        ignore_index=True)
+        pd.Series([20,team,team]+[None]*n_cols, index = season_cols),
+        ignore_index = True)
 
       team_data = season_data[season_data.team==team]
       opponents = list(team_data['opponent'])
 
       game_data = game_data.append(
-        pd.Series([team,team]+[None]*2+[year, 20]+[None]*4+[opponents]+[None],
-        index=game_cols),
+        pd.Series([team,team]+[None]*2+[year, 20]+[None]*4+[opponents]+[None],index = game_cols),
         ignore_index=True)
       
       for col in season_data.columns[3:]:
@@ -100,8 +100,7 @@ def data_init(game_data, first_year, last_year):
   teams = list(set(list(game_data.home_team)+list(game_data.away_team)))
 
   sos = pd.DataFrame(index=[i for i in range(len(teams))],
-                     columns=['Team']+[
-                       str(season)+'SOS' for season in range(first_year, last_year+1)]+[
+                     columns=['Team']+[str(season)+'SOS' for season in range(first_year, last_year+1)]+[
                          str(season)+'Rating' for season in range(first_year, last_year+1)],
                      dtype = 'float32')
 
@@ -111,8 +110,8 @@ def data_init(game_data, first_year, last_year):
     sos_list = []
     rating_list = []
     for team in teams:
-      if len(game_data_season[game_data_season.home_team==team])>2 or len(
-        game_data_season[game_data_season.away_team==team])>3:
+      if len(game_data_season[game_data_season.home_team == team]) > 2 or len(
+        game_data_season[game_data_season.away_team == team]) > 3:
         sos_list.append(0.45)
         rating_list.append(0.5)
       else:
@@ -129,8 +128,8 @@ def data_init(game_data, first_year, last_year):
 def custom_train_test_split(game_data, train_size, first_year, 
                             last_year, first_week, last_week):
   game_data_range = game_data[
-    ((game_data.week>=first_week)&(game_data.week<=min(19,last_week)))&
-    (game_data.season>=first_year)&(game_data.season<=last_year)
+    ((game_data.week >= first_week)&(game_data.week <= min(19, last_week)))&
+    (game_data.season >= first_year)&(game_data.season <= last_year)
     ].reset_index(drop=True)
 
   train = game_data_range.iloc[:int(len(game_data_range)*train_size)
