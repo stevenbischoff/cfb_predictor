@@ -63,8 +63,11 @@ def data_gather(first_year, last_year, data_type = 'adv'):
 
     talent = talent_scrape(year)
     talent.talent = talent.talent.astype('float32')
-    talent.talent /= max(talent.talent)
-    season_data = season_data.merge(talent,how='left',on='team')
+    try:
+      talent.talent /= max(talent.talent)
+    except:
+      talent.talent = np.nan
+    season_data = season_data.merge(talent,how='left', on='team').fillna(0.5)
     game_data = game_data.merge(season_data,
                                 left_on = ['home_team','away_team','week'],
                                 right_on = ['team','opponent','week']
@@ -74,8 +77,8 @@ def data_gather(first_year, last_year, data_type = 'adv'):
 
     game_data = game_data.merge(season_data,
                                 left_on = ['away_team','home_team','week'],
-                                right_on = ['team','opponent','week'])
-    game_data = game_data.drop(columns = ['team','opponent'])
+                                right_on = ['team','opponent','week']
+                               ).drop(columns = ['team','opponent'])
     for col in game_data.columns[(len(game_data.columns)-12)//2 + 12:]:
       game_data = game_data.rename(columns = {col:'away_'+col})
 
@@ -84,7 +87,7 @@ def data_gather(first_year, last_year, data_type = 'adv'):
   return tot
 
 
-def data_init(game_data,first_year,last_year):
+def data_init(game_data, first_year, last_year):
 
   game_data = game_data[(game_data.season >= first_year)&
                         (game_data.season <= last_year)]
@@ -123,8 +126,8 @@ def data_init(game_data,first_year,last_year):
   return game_data, sos
 
 
-def custom_train_test_split(game_data, train_size, first_year, last_year,
-                            first_week, last_week):
+def custom_train_test_split(game_data, train_size, first_year, 
+                            last_year, first_week, last_week):
   game_data_range = game_data[
     ((game_data.week>=first_week)&(game_data.week<=min(19,last_week)))&
     (game_data.season>=first_year)&(game_data.season<=last_year)
