@@ -12,12 +12,11 @@ def train(first_year, last_year, game_data='adv', window=2,
   if len(game_data) < 4:
     game_data = data_gather(first_year, last_year, game_data)
   
-  game_data, sos = data_init(game_data,first_year,last_year)
+  game_data, sos = data_init(game_data, first_year, last_year)
 
   nn_list = []
   for i in range(1,14):
-    nn_list.append(NeuralNet((len(game_data.columns)-12)//2,
-                         learn_rate, year_discount, tol))   
+    nn_list.append(NeuralNet((len(game_data.columns)-12)//2, learn_rate, year_discount, tol))   
 
   i = 1
   while sum([nn.switch for nn in nn_list]) > 0:
@@ -39,14 +38,13 @@ def train(first_year, last_year, game_data='adv', window=2,
         nn.assess(i, 4)
             
         if verbose == True:
-          print(week,'Train Error:',round(nn.train_error,5),
-                'Test Error:',round(nn.test_error,5))
+          print(week, 'Train Error:', round(nn.train_error,5), 'Test Error:', round(nn.test_error,5))
           
         if week == 13:
           for p in range(2):   
             ratings_calc(sos, nn, game_data)
             sos_calc(sos, game_data, first_year)
-    i+=1
+    i += 1
 
   for change in range(n_learn_rate_changes):
     if verbose == True:
@@ -77,8 +75,7 @@ def train(first_year, last_year, game_data='adv', window=2,
           nn.assess(j, 3)
 
           if verbose == True:
-            print(week,'Train Error:',round(nn.train_error,5),
-                  'Test Error:',round(nn.test_error,5))
+            print(week, 'Train Error:', round(nn.train_error,5), 'Test Error:', round(nn.test_error,5))
 
           if week == 13:
             for p in range(2):    
