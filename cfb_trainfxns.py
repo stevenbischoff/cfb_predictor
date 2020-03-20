@@ -164,27 +164,23 @@ class NeuralNet():
 def sigmoid(x):
   return 1 / (1 + np.exp(-x))
   
-def ratings_calc(sos, nn, game_data):
-  game_data1 = game_data[game_data.week == 20].reset_index(drop=True)
+def ratings_calc(sos, nn, game_data, last_year):
+  game_data1 = game_data[(game_data.week == 20)&(game_data.season < last_year)]
   col_cutoff = (len(game_data1.columns)-12)//2 + 12
   np.apply_along_axis(team_rating,1,game_data1,sos,game_data,nn,col_cutoff)
 
-def team_rating(tg, sos, game_data, nn, col_cutoff):
+def team_rating(tg, sos, game_data, nn, col_cutoff, last_year):
   team = tg[0]
   season = tg[4]
 
   s1 = nn.feedforward_ratingscalc(tg[12:col_cutoff].astype('float32'))  
   sos.loc[sos.Team == team, str(season)+'Rating'] = s1
+  game_data.loc[((game_data.home_team == team)&(game_data.season == season+1)),
+                'home_last_rating'] = s1
+  game_data.loc[((game_data.away_team == team)&(game_data.season == season+1)),
+                'away_last_rating'] = s1
 
-  if season != 2019: 
-    game_data.loc[((game_data.home_team == team)&
-                   (game_data.season == season+1)),
-                  'home_last_rating'] = s1
-    game_data.loc[((game_data.away_team == team)&
-                   (game_data.season == season+1)),
-                  'away_last_rating'] = s1
-
-def team_sos(team_info,sos,game_data,first_year):
+def team_sos(team_info, sos, game_data, first_year):
   team = team_info[0]
   team_games = game_data[(game_data.home_team == team)|
                          (game_data.away_team == team)]
@@ -193,11 +189,11 @@ def team_sos(team_info,sos,game_data,first_year):
     if info!='FCS':
       tg = team_games[team_games.season == season].sort_values('week')
       opps = tg.iloc[-1].home_opponents[:-1]
-      a = np.array([sos.loc[sos.Team == opp,
-                            str(season)+'Rating'].values[0] for opp in opps])
+      a = np.array(
+        [sos.loc[sos.Team == opp, str(season)+'Rating'] for opp in opps]) #.values[0]
       b=pd.Series(np.concatenate([[0.5],np.cumsum(a)/np.arange(1,len(a)+1)]),
-              tg.index,
-              dtype='float32')
+                  tg.index,
+                  dtype='float32')
       
       tg_home_index = tg[tg.home_team==team].index
       tg_away_index = tg[tg.away_team==team].index
