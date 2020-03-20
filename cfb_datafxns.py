@@ -3,9 +3,6 @@ import numpy as np
 from statistics import median
 from cfb_datascrape_1 import *
 
-import sys
-import time
-
 def data_gather(first_year, last_year, data_type = 'adv'):
 
   tot = pd.DataFrame()
