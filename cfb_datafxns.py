@@ -1,7 +1,7 @@
 import pandas as pd
 import numpy as np
 from statistics import median
-from cfb_datascrape_1 import *
+from cfb_datascrape import *
 
 def data_gather(first_year, last_year, data_type = 'adv'):
 
@@ -32,30 +32,26 @@ def data_gather(first_year, last_year, data_type = 'adv'):
     elif data_type == 'reg':
       season_data = reg_data_scrape(year).drop(columns = ['gameId']).sort_values(
         'week').fillna(0)
-      print(season_data)
-      print(season_data.columns)
-      sys.exit()
-
+      
     for col in season_data.columns[3:]:
       season_data[col] -= min(season_data[col])
       season_data[col] /= max(season_data[col])
 
-    fbs_teams = set([team for team in season_data.team if len(
-        season_data[season_data.team == team]) > 3])
+    fbs_teams = set([team for team in season_data.team if len(season_data[season_data.team == team]) > 3])
 
     season_cols = season_data.columns
     n_cols = len(season_cols)-3
     game_cols = game_data.columns
     for team in fbs_teams:
-      season_data = season_data.append(pd.Series(
-        [20,team,team]+[None]*n_cols,index=season_cols),
+      season_data = season_data.append(
+        pd.Series([20,team,team]+[None]*n_cols,index=season_cols),
         ignore_index=True)
 
       team_data = season_data[season_data.team==team]
       opponents = list(team_data['opponent'])
 
-      game_data = game_data.append(pd.Series(
-        [team,team]+[None]*2+[year, 20]+[None]*4+[opponents]+[None],
+      game_data = game_data.append(
+        pd.Series([team,team]+[None]*2+[year, 20]+[None]*4+[opponents]+[None],
         index=game_cols),
         ignore_index=True)
       
@@ -93,7 +89,7 @@ def data_gather(first_year, last_year, data_type = 'adv'):
 def data_init(game_data,first_year,last_year):
 
   game_data = game_data[(game_data.season >= first_year)&
-                        (game_data.season <= last_year+1)] # get rid of +1
+                        (game_data.season <= last_year)]
   
   game_data.insert((len(game_data.columns)-12)//2 + 12, 'home_last_rating', 0.5)
   game_data.insert((len(game_data.columns)-12)//2 + 12, 'home_SOS', 0.45)
@@ -104,12 +100,12 @@ def data_init(game_data,first_year,last_year):
 
   sos = pd.DataFrame(index=[i for i in range(len(teams))],
                      columns=['Team']+[
-                       str(season)+'SOS' for season in range(first_year, last_year+2)]+[#+1
-                         str(season)+'Rating' for season in range(first_year, last_year+2)],
+                       str(season)+'SOS' for season in range(first_year, last_year+1)]+[
+                         str(season)+'Rating' for season in range(first_year, last_year+1)],
                      dtype = 'float32')
 
   sos['Team'] = teams
-  for season in range(first_year, last_year+2):#+1
+  for season in range(first_year, last_year+1):
     game_data_season = game_data[game_data.season == season]
     sos_list = []
     rating_list = []
