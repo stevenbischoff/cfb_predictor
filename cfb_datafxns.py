@@ -6,11 +6,19 @@ from cfb_datascrape import *
 def data_gather(first_season, last_season, data_type = 'adv', verbose = True):
   
   """
-  Returns a DataFrame of cumulative statistics from the seasons in [first_season, last_season] that the model can be trained on.
-  
-  Right now, the function only works for the 'adv' value of the data_type parameter. I plan to add the ability to manipulate 
-  "regular" statistics as well.
-  
+  Returns a DataFrame of cumulative statistics that the model can be trained on.
+  ----------  
+  Parameters
+  ----------
+    first_season, last_season - int
+      The function gathers statistics from the years in the range [first_year, last_year]
+    data_type - str
+      The type of statistics to be prepared. Right now, the function only works for "advanced" statistics.
+      I plan to add the ability to gather and prepare "regular" statistics as well.
+    verbose - bool
+  -----
+  Notes
+  -----
   The function performs several tasks:
    - Scrapes game information, per-game statistics, and talent ratings
    - Calculates each team's cumulative per-game statistics
@@ -117,6 +125,11 @@ def sos_init(game_data, first_season, last_season):
   
   """
   Initializes the SOS DataFrame, which stores end-of-season ratings and is used for SOS calculations
+  ----------  
+  Parameters
+  ----------
+    game_data - DataFrame
+    first_season, last_season - int
   """
 
   teams = list(set(list(game_data.home_team)+list(game_data.away_team)))
@@ -151,12 +164,17 @@ def custom_train_test_split(game_data, train_size, first_season,
   
   """
   Splits the game data into (shuffled) train and test sets
-  
-  Parameters:
-    game_data - the total data from which the train and test sets are drawn
-    train_size - the proportion of the relevant data to be used for training
-    first_season, last_season - the first and last seasons from which data is drawn
-    first_week, last_weeks - the first and last weeks of the season from which data is drawn
+  ----------  
+  Parameters
+  ----------
+    game_data - DataFrame
+      The total data from which the train and test sets are drawn
+    train_size - float
+      The proportion of the relevant data to be used for training
+    first_season, last_season - int
+      The first and last seasons from which data is drawn
+    first_week, last_weeks - int
+      The first and last weeks of the season from which data is drawn
   """
   
   game_data_range = game_data[
@@ -172,6 +190,14 @@ def custom_train_test_split(game_data, train_size, first_season,
   return train, test
 
 def games_filter(game_data, season):
+  """
+  A function that fixes a problem with the 2012 advanced data
+  ----------
+  Parameters
+  ----------
+    game_data - DataFrame
+    season - int
+  """
   if season == 2012:
     army_temple = game_data[(game_data.home_team == 'Army')&
                             (game_data.away_team == 'Temple')]
