@@ -6,7 +6,18 @@ from cfb_datascrape import *
 def data_gather(first_season, last_season, data_type = 'adv', verbose = True):
   
   """
-  For the seasons in [first_season, last_season], this function returns a 
+  Returns a DataFrame of cumulative statistics from the seasons in [first_season, last_season] that the model can be trained on.
+  
+  Right now, the function only works for the 'adv' value of the data_type parameter. I plan to add the ability to manipulate 
+  "regular" statistics as well.
+  
+  The function performs several tasks:
+   - Scrapes game information, per-game statistics, and talent ratings
+   - Calculates each team's cumulative per-game statistics
+     - e.g. a team's offensive efficiency statistic in its 5th game will be the average of its offensive efficiency statistics
+       from games 1-4.
+   - Normalizes the talent ratings and cumulative statistics
+   - Initializes SOS and last season ratings
   """
 
   tot = pd.DataFrame()
@@ -65,7 +76,8 @@ def data_gather(first_season, last_season, data_type = 'adv', verbose = True):
         a = team_season_data[col][:-1]
         season_data.loc[team_season_data.index,col] = pd.Series(
           np.concatenate([[0.5],np.cumsum(a)/np.arange(1,len(a)+1)]),
-          team_season_data.index, dtype='float32')
+          team_season_data.index,
+          dtype='float32')
 
     talent = talent_scrape(season)
     talent.talent = talent.talent.astype('float32')
@@ -74,6 +86,7 @@ def data_gather(first_season, last_season, data_type = 'adv', verbose = True):
     except:
       talent.talent = np.nan
     season_data = season_data.merge(talent,how='left', on='team').fillna(0.5)
+    
     game_data = game_data.merge(season_data,
                                 left_on = ['home_team','away_team','week'],
                                 right_on = ['team','opponent','week']
@@ -89,16 +102,22 @@ def data_gather(first_season, last_season, data_type = 'adv', verbose = True):
       game_data = game_data.rename(columns = {col:'away_'+col})
 
     tot = pd.concat([tot,game_data])
-  
+     
   tot.insert((len(tot.columns)-12)//2 + 12, 'home_last_rating', 0.5)
   tot.insert((len(tot.columns)-12)//2 + 12, 'home_SOS', 0.45)
   tot.insert(len(tot.columns), 'away_last_rating', 0.5)
   tot.insert(len(tot.columns), 'away_SOS', 0.45)
+  
+  tot = tot.sample(frac=1).reset_index(drop=True)
     
   return tot
 
 
 def sos_init(game_data, first_season, last_season):
+  
+  """
+  Initializes the SOS DataFrame, which stores end-of-season ratings and is used for SOS calculations
+  """
 
   teams = list(set(list(game_data.home_team)+list(game_data.away_team)))
 
@@ -123,14 +142,23 @@ def sos_init(game_data, first_season, last_season):
         rating_list.append(0.15)
     sos[str(season)+'SOS'] = sos_list
     sos[str(season)+'Rating'] = rating_list
-    
-  game_data = game_data.sample(frac=1).reset_index(drop=True)
   
-  return game_data, sos
+  return sos
 
 
 def custom_train_test_split(game_data, train_size, first_season, 
                             last_season, first_week, last_week):
+  
+  """
+  Splits the game data into (shuffled) train and test sets
+  
+  Parameters:
+    game_data - the total data from which the train and test sets are drawn
+    train_size - the proportion of the relevant data to be used for training
+    first_season, last_season - the first and last seasons from which data is drawn
+    first_week, last_weeks - the first and last weeks of the season from which data is drawn
+  """
+  
   game_data_range = game_data[
     ((game_data.week>=first_week)&(game_data.week<=min(19,last_week)))&
     (game_data.season>=first_season)&(game_data.season<=last_season)
