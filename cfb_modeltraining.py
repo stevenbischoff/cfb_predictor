@@ -90,3 +90,5 @@ def training_round(nn_list, game_data, sos, train_size, last_season, window, cou
           sos_calc(sos, game_data)
             
   return nn_list, game_data, sos
+
+train(2010, 2019)
