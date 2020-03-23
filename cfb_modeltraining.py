@@ -31,7 +31,7 @@ def train(first_year, last_year, game_data='adv', window=2,
             game_data, train_size, first_year, last_year, week-window, week+window)
         else:
           train, test = custom_train_test_split(
-            game_data, train_size, first_year, last_year, week-window, week+5)            
+            game_data, train_size, first_year, last_year, week-window, week+6)            
         
         nn.epoch(train, last_year)     
         nn.error_check(test, last_year)
@@ -68,7 +68,7 @@ def train(first_year, last_year, game_data='adv', window=2,
               game_data, train_size, first_year, last_year, week-window, week+window)
           else:
             train, test = custom_train_test_split(
-              game_data, train_size, first_year, last_year, week-window, week+5)            
+              game_data, train_size, first_year, last_year, week-window, week+6)            
           
           nn.epoch(train,last_year)     
           nn.error_check(test,last_year)
