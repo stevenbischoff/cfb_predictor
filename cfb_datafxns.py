@@ -10,12 +10,12 @@ def data_gather(first_season, last_season, data_type = 'adv', verbose = True):
   ----------  
   Parameters
   ----------
-    first_season, last_season - int
+    first_season, last_season: int
       The function gathers statistics from the years in the range [first_year, last_year]
-    data_type - str
+    data_type: str
       The type of statistics to be prepared. Right now, the function only works for "advanced" statistics.
       I plan to add the ability to gather and prepare "regular" statistics as well.
-    verbose - bool
+    verbose: bool
   -----
   Notes
   -----
@@ -128,8 +128,8 @@ def sos_init(game_data, first_season, last_season):
   ----------  
   Parameters
   ----------
-    game_data - DataFrame
-    first_season, last_season - int
+    game_data: DataFrame
+    first_season, last_season: int
   """
 
   teams = list(set(list(game_data.home_team)+list(game_data.away_team)))
@@ -166,11 +166,11 @@ def custom_train_test_split(game_data, train_size, first_week, last_week):
   ----------  
   Parameters
   ----------
-    game_data - DataFrame
+    game_data: DataFrame
       The total data from which the train and test sets are drawn
-    train_size - float
+    train_size: float
       The proportion of the relevant data to be used for training
-    first_week, last_weeks - int
+    first_week, last_weeks: int
       The first and last weeks of the season from which data is drawn
   """
   
@@ -191,8 +191,8 @@ def games_filter(game_data, season):
   ----------
   Parameters
   ----------
-    game_data - DataFrame
-    season - int
+    game_data: DataFrame
+    season: int
   """
   if season == 2012:
     army_temple = game_data[(game_data.home_team == 'Army')&
