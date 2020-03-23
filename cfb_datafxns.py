@@ -4,6 +4,10 @@ from cfb_datascrape import *
 
 
 def data_gather(first_season, last_season, data_type = 'adv', verbose = True):
+  
+  """
+  For the seasons in [first_season, last_season], this function returns a 
+  """
 
   tot = pd.DataFrame()
 
@@ -85,19 +89,16 @@ def data_gather(first_season, last_season, data_type = 'adv', verbose = True):
       game_data = game_data.rename(columns = {col:'away_'+col})
 
     tot = pd.concat([tot,game_data])
+  
+  tot.insert((len(tot.columns)-12)//2 + 12, 'home_last_rating', 0.5)
+  tot.insert((len(tot.columns)-12)//2 + 12, 'home_SOS', 0.45)
+  tot.insert(len(tot.columns), 'away_last_rating', 0.5)
+  tot.insert(len(tot.columns), 'away_SOS', 0.45)
     
   return tot
 
 
-def data_init(game_data, first_season, last_season):
-
-  game_data = game_data[(game_data.season >= first_season)&
-                        (game_data.season <= last_season)]
-  
-  game_data.insert((len(game_data.columns)-12)//2 + 12, 'home_last_rating', 0.5)
-  game_data.insert((len(game_data.columns)-12)//2 + 12, 'home_SOS', 0.45)
-  game_data.insert(len(game_data.columns), 'away_last_rating', 0.5)
-  game_data.insert(len(game_data.columns), 'away_SOS', 0.45)
+def sos_init(game_data, first_season, last_season):
 
   teams = list(set(list(game_data.home_team)+list(game_data.away_team)))
 
