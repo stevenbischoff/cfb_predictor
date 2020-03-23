@@ -57,7 +57,7 @@ class NeuralNet():
     Returns a team's rating and the hidden layer array, which is required for backpropagation
     ----------
     Parameters
-      X1 - array
+      X1: array
     ----------
     """
     F1 = sigmoid(np.dot(self.W1.T, X1) + self.b1)

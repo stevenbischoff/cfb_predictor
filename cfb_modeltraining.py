@@ -58,65 +58,6 @@ def train(first_season, last_season, game_data='adv', window=2, train_size=0.8, 
       nn.switch = 1
       nn.n_worse = 0
       nn.learn *= 0.1
-      
-    """for week in range(1,14):
-      nn = nn_list[week-1]
-      if nn.switch > 0:
-        nn.n_worse += 1
-        if week < 13:
-          train, test = custom_train_test_split(game_data, train_size, week-window, week+window)
-        else:
-          train, test = custom_train_test_split(game_data, train_size, week-window, week+6)            
-        
-        nn.epoch(train, last_season)     
-        nn.error_check(test, last_season)
-        nn.assess(i, 8)
-            
-        if verbose == True:
-          print(week, 'Train Error:', round(nn.train_error,5), 'Test Error:', round(nn.test_error,5))
-          
-        if week == 13:
-          for p in range(2):   
-            ratings_calc(sos, nn, game_data, last_season)
-            sos_calc(sos, game_data, first_season)
-    
-    i += 1
-
-  for change in range(n_learn_rate_changes):
-    if verbose == True:
-      print('Learn Rate Change',change+1)
-
-    for nn in nn_list:
-      nn.switch = 1
-      nn.n_worse = 0
-      nn.learn *= 0.1
-
-    j=1
-    while sum([nn.switch for nn in nn_list]) > 0:
-      if verbose == True:
-        print(i)
-      for week in range(1,14):
-        nn = nn_list[week-1]
-        if nn.switch > 0:
-          nn.n_worse += 1
-          if week < 13:
-            train, test = custom_train_test_split(game_data, train_size, week-window, week+window)
-          else:
-            train, test = custom_train_test_split(game_data, train_size, week-window, week+6)            
-          
-          nn.epoch(train,last_season)     
-          nn.error_check(test,last_season)
-          nn.assess(j, 3)
-
-          if verbose == True:
-            print(week, 'Train Error:', round(nn.train_error,5), 'Test Error:', round(nn.test_error,5))
-
-          if week == 13:
-            for p in range(2):    
-              ratings_calc(sos, nn, game_data, last_season)
-              sos_calc(sos, game_data, first_season)
-      i += 1
-      j += 1"""
   
   if verbose == True:
     print()
@@ -149,5 +90,3 @@ def training_round(nn_list, game_data, sos, train_size, last_season, window, cou
           sos_calc(sos, game_data)
             
   return nn_list, game_data, sos
-
-train(2018,2019)
