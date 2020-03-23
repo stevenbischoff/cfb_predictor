@@ -3,6 +3,11 @@ import pandas as pd
 
 
 def adv_data_scrape(year):
+  
+  """
+  Returns advanced game stats pulled using the collegefootballdata API. 
+  The function concatenates regular season and postseason stats into a single Pandas DataFrame.  
+  """
 
   base_url = 'https://api.collegefootballdata.com/stats/game/advanced'    
   parameters = {'year':year,'seasonType':'regular'}
@@ -27,6 +32,13 @@ def adv_data_scrape(year):
 
 
 def games_scrape(year):
+  
+  """
+  Returns a DataFrame of game information that includes the conferences of the participants,
+  whether the game was played on a neutral field, and the final score, all of which are relevant for downstream
+  data manipulation and training.
+  Also concatenates regular season and postseason information.
+  """
 
   base_url = 'https://api.collegefootballdata.com/games'
   parameters = {'year':year,'seasonType':'regular'}
@@ -51,6 +63,11 @@ def games_scrape(year):
 
 
 def talent_scrape(year):
+  
+  """
+  Returns a DataFrame with 247 composite talent ratings, which only go back through 2015.
+  """
+  
   
   base_url = 'https://api.collegefootballdata.com/talent'  
   parameters = {'year':year}
