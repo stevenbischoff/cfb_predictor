@@ -159,8 +159,7 @@ def sos_init(game_data, first_season, last_season):
   return sos
 
 
-def custom_train_test_split(game_data, train_size, first_season, 
-                            last_season, first_week, last_week):
+def custom_train_test_split(game_data, train_size, first_week, last_week):
   
   """
   Splits the game data into (shuffled) train and test sets
@@ -171,15 +170,12 @@ def custom_train_test_split(game_data, train_size, first_season,
       The total data from which the train and test sets are drawn
     train_size - float
       The proportion of the relevant data to be used for training
-    first_season, last_season - int
-      The first and last seasons from which data is drawn
     first_week, last_weeks - int
       The first and last weeks of the season from which data is drawn
   """
   
   game_data_range = game_data[
-    ((game_data.week>=first_week)&(game_data.week<=min(19,last_week)))&
-    (game_data.season>=first_season)&(game_data.season<=last_season)
+    (game_data.week>=first_week)&(game_data.week<=min(19,last_week))
     ].reset_index(drop=True)
 
   train = game_data_range.iloc[:int(len(game_data_range)*train_size)
