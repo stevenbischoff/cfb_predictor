@@ -8,10 +8,6 @@ def train(first_season, last_season, game_data='adv', window=2, train_size=0.8, 
           tol=0.0001, n_learn_rate_changes=3, season_discount=0, verbose=True):
   """
   The full training algorithm
-  -----
-  Notes
-  -----
-  
   ----------
   Parameters
   ----------
@@ -43,7 +39,7 @@ def train(first_season, last_season, game_data='adv', window=2, train_size=0.8, 
     nn_list.append(NeuralNet((len(game_data.columns)-12)//2, learn_rate, season_discount, tol))   
 
   i = 1
-  counter = 0
+  counter = 1
   threshold = 6
   for change in range(n_learn_rate_changes + 1):
     while sum([nn.switch for nn in nn_list]) > 0:
@@ -53,7 +49,7 @@ def train(first_season, last_season, game_data='adv', window=2, train_size=0.8, 
       counter += 1
       i += 1
     threshold = max(1, threshold - 1)
-    counter = 0
+    counter = 1
     for nn in nn_list:
       nn.switch = 1
       nn.n_worse = 0
@@ -63,9 +59,9 @@ def train(first_season, last_season, game_data='adv', window=2, train_size=0.8, 
     print()
     print('Final Week Errors')
     for nn in nn_list:
-      print('Train Error:', round(nn.train_error,5), 'Test Error:', round(nn.test_error,5))
+      print('Train Error:', round(nn.train_error,5), 'Test Error:', round(nn.best_test_error,5))
 
-  return nn_list, sos, game_data
+  return nn_list, game_data, sos
 
 def training_round(nn_list, game_data, sos, train_size, last_season, window, counter, threshold, verbose):
   for week in range(1,14):
@@ -90,5 +86,3 @@ def training_round(nn_list, game_data, sos, train_size, last_season, window, cou
           sos_calc(sos, game_data)
             
   return nn_list, game_data, sos
-
-train(2010, 2019)

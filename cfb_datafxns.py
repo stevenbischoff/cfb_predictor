@@ -64,8 +64,8 @@ def data_gather(first_season, last_season, data_type = 'adv', verbose = True):
 
     fbs_teams = set([team for team in season_data.team if len(season_data[season_data.team == team]) > 3])
 
-    season_cols = season_data.columns
-    n_cols = len(season_cols)-3
+    season_cols = list(season_data.columns) + ['games']
+    n_cols = len(season_cols) - 3
     game_cols = game_data.columns
     for team in fbs_teams:
       season_data = season_data.append(
@@ -73,19 +73,22 @@ def data_gather(first_season, last_season, data_type = 'adv', verbose = True):
         ignore_index = True)
 
       team_season_data = season_data[season_data.team==team]
-      opponents = list(team_season_data['opponent'])
+      n_games = len(team_season_data) - 1
+      tsd_index = team_season_data.index
+      opponents = list(team_season_data.opponent)
 
       game_data = game_data.append(
-        pd.Series([team,team]+[None]*2+[season, 20]+[None]*4+[opponents]+[None],
-        index=game_cols),
+        pd.Series([team,team]+[None]*2+[season, 20]+[None]*4+[opponents]+[None], index = game_cols),
         ignore_index=True)
-      
-      for col in season_data.columns[3:]:
+
+      game_range = np.arange(1, n_games+1)      
+      for col in season_cols[3:-1]:
         a = team_season_data[col][:-1]
-        season_data.loc[team_season_data.index,col] = pd.Series(
-          np.concatenate([[0.5],np.cumsum(a)/np.arange(1,len(a)+1)]),
-          team_season_data.index,
-          dtype='float32')
+        season_data.loc[tsd_index, col] = pd.Series(np.concatenate([[0.5], np.cumsum(a)/game_range]),
+          index = tsd_index)
+        
+      season_data.loc[tsd_index, 'games'] = pd.Series([i/n_games for i in range(n_games + 1)],
+          index = tsd_index)
 
     talent = talent_scrape(season)
     talent.talent = talent.talent.astype('float32')
@@ -93,17 +96,15 @@ def data_gather(first_season, last_season, data_type = 'adv', verbose = True):
       talent.talent /= max(talent.talent)
     except:
       talent.talent = np.nan
-    season_data = season_data.merge(talent,how='left', on='team').fillna(0.5)
+    season_data = season_data.merge(talent, how = 'left', on = 'team').fillna(0.5)
     
-    game_data = game_data.merge(season_data,
-                                left_on = ['home_team','away_team','week'],
+    game_data = game_data.merge(season_data, left_on = ['home_team','away_team','week'],
                                 right_on = ['team','opponent','week']
                                 ).drop(columns = ['team','opponent'])
     for col in game_data.columns[12:]:
       game_data = game_data.rename(columns = {col:'home_'+col})
 
-    game_data = game_data.merge(season_data,
-                                left_on = ['away_team','home_team','week'],
+    game_data = game_data.merge(season_data, left_on = ['away_team','home_team','week'],
                                 right_on = ['team','opponent','week']
                                ).drop(columns = ['team','opponent'])
     for col in game_data.columns[(len(game_data.columns)-12)//2 + 12:]:
