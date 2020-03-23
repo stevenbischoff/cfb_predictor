@@ -4,12 +4,13 @@ from cfb_datascrape import *
 import time
 
 
-def data_gather(first_season, last_season, data_type = 'adv'):
+def data_gather(first_year, last_year, data_type = 'adv', verbose = True):
 
   tot = pd.DataFrame()
 
-  for season in range(first_season, last_season+1):
-    print(season)
+  for year in range(first_year, last_year+1):
+    if verbose == True:
+      print(year)
 
     games = games_scrape(season)
     games = games_filter(games, season)
@@ -46,8 +47,8 @@ def data_gather(first_season, last_season, data_type = 'adv'):
     game_cols = game_data.columns
     for team in fbs_teams:
       season_data = season_data.append(
-        pd.Series([20,team,team]+[None]*n_cols,index=season_cols),
-        ignore_index=True)
+        pd.Series([20,team,team]+[None]*n_cols, index = season_cols),
+        ignore_index = True)
 
       team_season_data = season_data[season_data.team==team]
       opponents = list(team_season_data['opponent'])
@@ -113,8 +114,8 @@ def data_init(game_data, first_season, last_season):
     sos_list = []
     rating_list = []
     for team in teams:
-      if len(game_data_season[game_data_season.home_team==team])>2 or len(
-        game_data_season[game_data_season.away_team==team])>3:
+      if len(game_data_season[game_data_season.home_team == team]) > 2 or len(
+        game_data_season[game_data_season.away_team == team]) > 3:
         sos_list.append(0.45)
         rating_list.append(0.5)
       else:
@@ -150,23 +151,4 @@ def games_filter(game_data, season):
       game_data = game_data.drop(
         index = army_temple.index[0]).reset_index(drop=True)          
       
-  
-  """team_game_data = game_data[(game_data.home_team == team)|
-                             (game_data.away_team == team)]
-  for week in team_game_data.week:
-    if len(team_game_data[team_game_data.week == week]) > 1:
-      week_data = team_game_data[team_game_data.week == week]
-      if len(set(list(week_data.home_team)+list(week_data.away_team))) == 2:
-        game_data = game_data.drop(index = week_data.index[0]).reset_index(drop=True)
-
-      elif week == 1:
-        print(team, 'week 0')
-        game_data.loc[week_data.index[0],'week'] = 0
-        team_game_data = game_data[(game_data.home_team == team)|
-                                   (game_data.away_team == team)]
-      else:
-        print(team, 'last')
-        game_data.loc[week_data.index[-1],'week'] += 1
-        team_game_data = game_data[(game_data.home_team == team)|
-                                   (game_data.away_team == team)]"""
   return game_data
