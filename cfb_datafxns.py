@@ -1,16 +1,15 @@
 import pandas as pd
 import numpy as np
 from cfb_datascrape import *
-import time
 
 
-def data_gather(first_year, last_year, data_type = 'adv', verbose = True):
+def data_gather(first_season, last_season, data_type = 'adv', verbose = True):
 
   tot = pd.DataFrame()
 
-  for year in range(first_year, last_year+1):
+  for season in range(first_season, last_season + 1):
     if verbose == True:
-      print(year)
+      print(season)
 
     games = games_scrape(season)
     games = games_filter(games, season)
