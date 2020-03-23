@@ -65,16 +65,38 @@ def games_scrape(season):
 def talent_scrape(season):
   
   """
-  Returns a DataFrame with 247 composite talent ratings for a season, which only go back through 2015.
+  Returns a DataFrame with team talent ratings for the season.
+   - For seasons 2015+, returns the 247 composite talent ratings for that season.
+   - For seasons before 2015, the composite is unavailable, so the function returns the sum of the recruiting class
+     ratings for the past four years. 
   """
   
-  
-  base_url = 'https://api.collegefootballdata.com/talent'  
-  parameters = {'year':season}
-  
-  response = requests.get(base_url,params=parameters)
-  if response.status_code == 200:
-    return pd.DataFrame(response.json(),columns = ['school','talent']
-        ).rename(columns = {'school':'team'})
+  if season >= 2015:
+    base_url = 'https://api.collegefootballdata.com/talent'  
+    parameters = {'year':season}
+    
+    response = requests.get(base_url,params=parameters)
+    if response.status_code == 200:
+      return pd.DataFrame(response.json(),columns = ['school','talent']
+          ).rename(columns = {'school':'team'})
+    else:
+      raise Exception('Request failed with status code: '+str(response.status_code))
   else:
-    raise Exception('Request failed with status code: '+str(response.status_code))     
+    tot = pd.DataFrame(columns = ['team'])
+    for temp_season in range(season - 3, season + 1):
+      base_url = 'https://api.collegefootballdata.com/recruiting/teams'
+      parameters = {'year':temp_season}
+    
+      response = requests.get(base_url,params=parameters)
+      if response.status_code == 200:
+        season_recruiting = pd.DataFrame(response.json(), columns = ['team','points']
+            ).rename(columns = {'points':str(temp_season)+'points'}).sort_values('team')
+      else:
+        raise Exception('Request failed with status code: '+str(response.status_code))
+      tot = tot.merge(season_recruiting, how = 'right', on = 'team').fillna(0)
+      tot[str(temp_season) + 'points'] = tot[str(temp_season) + 'points'].astype('float32')
+      
+    tot['talent'] = sum([tot[col] for col in tot.columns[1:]])
+    tot = tot.drop(columns = tot.columns[1:-1])
+    
+    return tot

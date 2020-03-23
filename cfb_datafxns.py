@@ -95,6 +95,7 @@ def data_gather(first_season, last_season, data_type = 'adv', verbose = True):
     try:
       talent.talent /= max(talent.talent)
     except:
+      print('!')
       talent.talent = np.nan
     season_data = season_data.merge(talent, how = 'left', on = 'team').fillna(0.5)
     
