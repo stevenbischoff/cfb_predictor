@@ -12,7 +12,7 @@ def train(first_year, last_year, game_data='adv', window=2,
   if len(game_data) < 4:
     game_data = data_gather(first_year, last_year, game_data)
   
-  game_data, sos = data_init(game_data, first_year, last_year)
+  sos = sos_init(game_data, first_year, last_year)
 
   nn_list = []
   for i in range(1,14):
