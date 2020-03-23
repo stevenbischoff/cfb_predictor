@@ -43,16 +43,17 @@ def train(first_season, last_season, game_data='adv', window=2, train_size=0.8, 
     nn_list.append(NeuralNet((len(game_data.columns)-12)//2, learn_rate, season_discount, tol))   
 
   i = 1
-  counter = 1
+  counter = 0
   threshold = 6
   for change in range(n_learn_rate_changes + 1):
     while sum([nn.switch for nn in nn_list]) > 0:
       if verbose == True:
-        print(i)
-      nn_list, game_data, sos = training_round(nn_list, game_data, sos, window, counter, threshold, verbose)
+        print('Round', i)
+      nn_list, game_data, sos = training_round(nn_list, game_data, sos, train_size, last_season, window, counter, threshold, verbose)
       counter += 1
       i += 1
     threshold = max(1, threshold - 1)
+    counter = 0
     for nn in nn_list:
       nn.switch = 1
       nn.n_worse = 0
@@ -125,7 +126,7 @@ def train(first_season, last_season, game_data='adv', window=2, train_size=0.8, 
 
   return nn_list, sos, game_data
 
-def training_round(nn_list, game_data, sos, window, counter, threshold, verbose):
+def training_round(nn_list, game_data, sos, train_size, last_season, window, counter, threshold, verbose):
   for week in range(1,14):
     nn = nn_list[week-1]
     if nn.switch > 0:
@@ -140,11 +141,13 @@ def training_round(nn_list, game_data, sos, window, counter, threshold, verbose)
       nn.assess(counter, threshold)
 
       if verbose == True:
-        print(week, 'Train Error:', round(nn.train_error,5), 'Test Error:', round(nn.test_error,5))
+        print('Week:', week, 'Train Error:', round(nn.train_error,5), 'Test Error:', round(nn.test_error,5))
 
       if week == 13:
         for p in range(2):   
-          ratings_calc(sos, nn, game_data, last_season)
-          sos_calc(sos, game_data, first_season)
+          ratings_calc(sos, nn, game_data)
+          sos_calc(sos, game_data)
             
   return nn_list, game_data, sos
+
+train(2018,2019)

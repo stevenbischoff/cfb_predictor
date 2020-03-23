@@ -3,21 +3,21 @@ import pandas as pd
 import copy
     
 class NeuralNet():
-  def __init__(self, n, learn_rate = 0.0001, year_discount = 0, tol = 0.0001): 
+  def __init__(self, n, learn_rate = 0.0001, season_discount = 0, tol = 0.0001): 
     
     """
     Initializes a neural network
     ----------
     Parameters
     ----------
-      n - int
+      n: int
         The number of inputs
-      learn_rate - float
-      year_discount - float
+      learn_rate: float
+      season_discount: float
         If non-zero, discounts less recent seasons during training and error calculation
-        A season's contribution to the total loss function is multiplied by year_discount * (last_season - season).
-        So if year_discount = 0.05 and the last season is 2019, the loss from 2016 is discounted by 15%.
-      tol - float
+        A season's contribution to the total loss function is multiplied by season_discount * (last_season - season).
+        So if season_discount = 0.05 and the last season is 2019, the loss from 2016 is discounted by 15%.
+      tol: float
         The tolerance for early stopping. Training (at the current learning rate) stops once a fixed number of training rounds
         has been reached and the test error fails to improve by at least tol over two consecutive rounds.
     ----------
@@ -35,7 +35,7 @@ class NeuralNet():
     """
     
     self.learn = learn_rate
-    self.year_discount = year_discount
+    self.season_discount = season_discount
     self.tol = tol
     
     self.W1 = np.random.normal(scale=0.00001, size=[n,n//2]).astype('float32')
@@ -76,9 +76,9 @@ class NeuralNet():
     Returns a predicted spread. The prediction adds a home field advantage iff the game is not played on a neutral field.
     ----------
     Parameters
-      s1, s2 - float
+      s1, s2: float
         Home rating, away rating
-      neutral - bool
+      neutral: bool
         False iff the game is not played on a neutral field
     """
     if neutral == False:
@@ -87,31 +87,31 @@ class NeuralNet():
       return self.m*(s1 - s2)
  
     
-  def epoch(self, train, last_year):  
+  def epoch(self, train, last_season):  
     """
     A single epoch of stochastic gradient descent applied to the training data. Calculates the training error for that epoch.
     ----------
     Parameters
     ----------
-      train - DataFrame
-      last_year - int
+      train: DataFrame
+      last_season: int
     """
     n_cols = len(train.columns) - 12
     self.total_loss = 0
     self.count = 0
-    np.apply_along_axis(self.update, 1, train, last_year, n_cols)
+    np.apply_along_axis(self.update, 1, train, last_season, n_cols)
     self.train_error = self.total_loss/self.count
 
     
-  def update(self, game, last_year, n_cols):
+  def update(self, game, last_season, n_cols):
     """
     Prediction and backpropagation for a single data point.
     ----------
     Parameters
     ----------
-      game - DataFrame
-      last_year - int
-      n_cols - int
+      game: DataFrame
+      last_season: int
+      n_cols: int
     -----
     Notes
     -----
@@ -163,7 +163,7 @@ class NeuralNet():
     y_pred = self.margin_predict(s1, s2, neutral)
     
     season = game[4]
-    r = 1 - self.year_discount*(last_year - season)    
+    r = 1 - self.season_discount*(last_season - season)    
     game_error = game[7] - y_pred
     self.total_loss += r*abs(game_error)
     self.count += r
@@ -190,23 +190,23 @@ class NeuralNet():
     self.b1 -= r*self.learn*dLdb1
 
     
-  def error_check(self, test, last_year):
+  def error_check(self, test, last_season):
     """
     Calculates the total error of a set of datapoints without performing backpropagation
     ----------
     Parameters
     ----------
-      test - DataFrame
-      last_year - int
+      test: DataFrame
+      last_season: int
     """
     n_cols = len(test.columns) - 12
     self.test_loss = 0
     self.count = 0
-    np.apply_along_axis(self.game_error, 1, test, last_year, n_cols)
+    np.apply_along_axis(self.game_error, 1, test, last_season, n_cols)
     self.test_error = self.test_loss/self.count
   
 
-  def game_error(self, game, last_year, n_cols):
+  def game_error(self, game, last_season, n_cols):
     """
     Same as self.update without backpropagation
     """
@@ -225,7 +225,7 @@ class NeuralNet():
     y_pred = self.margin_predict(s1, s2, neutral)
 
     season = game[4]
-    r = 1 - self.year_discount*(last_year - season)
+    r = 1 - self.season_discount*(last_season - season)
     self.test_loss += r*abs(game[7] - y_pred)
     self.count += r
     
@@ -259,56 +259,57 @@ def sigmoid(x):
   return 1 / (1 + np.exp(-x))
  
     
-def ratings_calc(sos, nn, game_data, last_year):
+def ratings_calc(sos, nn, game_data):
   """
   Calculates the final ratings for every FBS team and updates the last season ratings in game_data 
   Each team's final statistics are stored in a "week 20" row of game_data
   ----------
   Parameters
   ----------
-    sos - DataFrame
-    nn - NeuralNet
-    game_data - DataFrame
-    last_year
+    sos: DataFrame
+    nn: NeuralNet
+    game_data: DataFrame
   """
+  last_season = max(game_data.season)
   game_data1 = game_data[game_data.week == 20]
   col_cutoff = (len(game_data1.columns)-12)//2 + 12
-  np.apply_along_axis(team_rating, 1, game_data1, sos, game_data, nn, col_cutoff, last_year)
+  np.apply_along_axis(team_rating, 1, game_data1, sos, game_data, nn, col_cutoff, last_season)
 
 
-def team_rating(tg, sos, game_data, nn, col_cutoff, last_year):
+def team_rating(tg, sos, game_data, nn, col_cutoff, last_season):
   """
   Calculates a team's final rating for a particular season. Updates the SOS dataframe with this information, and also updates
-  the last_rating information in game_data iff the season is less than last_year
+  the last_rating information in game_data iff the season is less than last_season
   ----------
   Parameters
   ----------
-    tg - Series
-    sos, game_data - DataFrame
-    nn - NeuralNet
-    col_cutoff, last_year - int
+    tg: Series
+    sos, game_data: DataFrame
+    nn: NeuralNet
+    col_cutoff, last_season: int
   """
   team = tg[0]
   season = tg[4]
 
   s1 = nn.feedforward_ratingscalc(tg[12:col_cutoff].astype('float32'))  
   sos.loc[sos.Team == team, str(season)+'Rating'] = s1
-  if season < last_year:
+  if season < last_season:
     game_data.loc[((game_data.home_team == team)&(game_data.season == season+1)),
                   'home_last_rating'] = s1
     game_data.loc[((game_data.away_team == team)&(game_data.season == season+1)),
                   'away_last_rating'] = s1
 
     
-def sos_calc(sos,game_data,first_year):
+def sos_calc(sos, game_data):
   """
   For each team, performs Strength of Schedule (SOS) calculations for each season for which they were in the FBS
   This function takes up a majority of training time, and I'm always looking for ways to improve its speed.
   """
-  np.apply_along_axis(team_sos,1,sos,sos,game_data,first_year)
+  first_season = min(game_data.season)
+  np.apply_along_axis(team_sos,1,sos,sos,game_data,first_season)
 
 
-def team_sos(team_info, sos, game_data, first_year):
+def team_sos(team_info, sos, game_data, first_season):
   """
   Performs SOS calculations for each season the team is in the FBS
   The team's SOS rating for a particular week is the average of the ratings of every team played prior to that week.
@@ -316,7 +317,7 @@ def team_sos(team_info, sos, game_data, first_year):
   team = team_info[0]
   team_games = game_data[(game_data.home_team == team)|
                          (game_data.away_team == team)]
-  season=first_year
+  season=first_season
   for info in team_info[1:len(team_info)//2+1]:
     if info!='FCS':
       tg = team_games[team_games.season == season].sort_values('week')
