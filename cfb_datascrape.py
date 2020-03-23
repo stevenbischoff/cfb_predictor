@@ -90,7 +90,7 @@ def talent_scrape(season):
       response = requests.get(base_url,params=parameters)
       if response.status_code == 200:
         season_recruiting = pd.DataFrame(response.json(), columns = ['team','points']
-            ).rename(columns = {'points':str(temp_season)+'points'}).sort_values('team')
+            ).rename(columns = {'points':str(temp_season)+'points'})
       else:
         raise Exception('Request failed with status code: '+str(response.status_code))
       tot = tot.merge(season_recruiting, how = 'right', on = 'team').fillna(0)
@@ -100,3 +100,19 @@ def talent_scrape(season):
     tot = tot.drop(columns = tot.columns[1:-1])
     
     return tot
+
+def sp_scrape(season):
+  
+  """
+  Returns a DataFrame with S&P+ Ratings from a season
+  """
+
+  base_url = 'https://api.collegefootballdata.com/ratings/sp'
+  parameters = {'year':season}
+  
+  response = requests.get(base_url,params=parameters)
+  if response.status_code == 200:
+    sp = pd.DataFrame(response.json(), columns = ['team','rating'])
+    return sp.drop(index = sp.index[-1])
+  else:
+    raise Exception('Request failed with status code: '+str(response.status_code))

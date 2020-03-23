@@ -11,7 +11,7 @@ def data_gather(first_season, last_season, data_type = 'adv', verbose = True):
   Parameters
   ----------
     first_season, last_season: int
-      The function gathers statistics from the years in the range [first_year, last_year]
+      The function gathers statistics from the years in the range [first_season, last_season]
     data_type: str
       The type of statistics to be prepared. Right now, the function only works for "advanced" statistics.
       I plan to add the ability to gather and prepare "regular" statistics as well.
@@ -26,6 +26,7 @@ def data_gather(first_season, last_season, data_type = 'adv', verbose = True):
        from games 1-4.
    - Normalizes the talent ratings and cumulative statistics
    - Initializes SOS and last season ratings
+   - Sets the teams' last_ratings for the first season equal to their S&P+ ratings from first_season - 1   
   """
 
   tot = pd.DataFrame()
@@ -117,6 +118,15 @@ def data_gather(first_season, last_season, data_type = 'adv', verbose = True):
   tot.insert((len(tot.columns)-12)//2 + 12, 'home_SOS', 0.45)
   tot.insert(len(tot.columns), 'away_last_rating', 0.5)
   tot.insert(len(tot.columns), 'away_SOS', 0.45)
+
+  sp = sp_scrape(first_season - 1)
+  sp['rating'] += abs(min(sp.rating))
+  sp['rating'] /= max(sp.rating)
+
+  for i in range(len(sp)):
+    team, rating = sp.loc[i, 'team'], sp.loc[i, 'rating']
+    tot.loc[(tot.home_team == team)&(tot.season == first_season), 'home_last_rating'] = rating
+    tot.loc[(tot.away_team == team)&(tot.season == first_season), 'away_last_rating'] = rating
   
   tot = tot.sample(frac=1).reset_index(drop=True)
     
