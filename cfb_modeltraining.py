@@ -4,8 +4,8 @@ import copy
 from cfb_trainfxns import *
 from cfb_datafxns import *
 
-def train(first_season, last_season, game_data='adv', window=2, train_size=0.8, learn_rate=0.0001, 
-          tol=0.0001, n_learn_rate_changes=3, season_discount=0, verbose=True):
+def train(first_season, last_season, game_data = 'adv', window = 2, train_size = 0.8, learn_rate = 0.0001, 
+          tol = 0.0001, n_learn_rate_changes = 3, season_discount = 0, verbose = True):
   """
   The full training algorithm
   ----------
@@ -63,6 +63,7 @@ def train(first_season, last_season, game_data='adv', window=2, train_size=0.8, 
 
   return nn_list, game_data, sos
 
+
 def training_round(nn_list, game_data, sos, train_size, last_season, window, counter, threshold, verbose):
   for week in range(1,14):
     nn = nn_list[week-1]
@@ -86,4 +87,38 @@ def training_round(nn_list, game_data, sos, train_size, last_season, window, cou
           sos_calc(sos, game_data)
             
   return nn_list, game_data, sos
-nn_list, game_data, sos = train(2013, 2019)
+
+
+def model_test(nn_list, game_data, sos, season, verbose = True):
+  """
+  Assuming the model was trained on data up to final_season, this function tests the model on final_season + 1
+  """
+  game_data_season = data_gather(season, season)
+
+  sos_season = sos_init(game_data_season, season, season)
+  
+  for i in range(len(sos)):
+    team, rating = sos.loc[i, 'Team'], sos.loc[i, sos.columns[-1]]
+    game_data_season.loc[game_data_season.home_team == team, 'home_last_rating'] = rating
+    game_data_season.loc[game_data_season.away_team == team, 'away_last_rating'] = rating
+
+  for p in range(3):
+    ratings_calc(sos_season, nn_list[-1], game_data_season)
+    sos_calc(sos_season, game_data_season)
+    print(sos_season.sort_values(sos_season.columns[-1],ascending=False).reset_index(drop=True).head(30))
+
+  for i in range(1, 14):
+    nn = nn_list[i-1]
+    if i == 1:
+      game_data_temp = game_data_season[game_data_season.week <= 1]
+    elif i == 13:
+      game_data_temp = game_data_season[(game_data_season.week >= 13)&(game_data_season.week < 20)]
+    else:
+      game_data_temp = game_data_season[game_data_season.week == i]
+    nn.error_check(game_data_temp, 2019)
+    if verbose == True:
+      print('Week:', i, 'Error:', nn.test_loss/nn.count)
+  if verbose == True:
+    print('Total Error:',sum([nn.test_loss for nn in nn_list])/sum([nn.count for nn in nn_list]))
+
+  return game_data_season, sos_season, nn_list
