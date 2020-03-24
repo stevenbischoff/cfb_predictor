@@ -82,7 +82,7 @@ def training_round(nn_list, game_data, sos, train_size, last_season, window, cou
         print('Week:', week, 'Train Error:', round(nn.train_error,5), 'Test Error:', round(nn.test_error,5))
 
       if week == 13:
-        for p in range(2):   
+        for p in range(threshold//2):   
           ratings_calc(sos, nn, game_data)
           sos_calc(sos, game_data)
             
@@ -102,7 +102,7 @@ def model_test(nn_list, game_data, sos, season, verbose = True):
     game_data_season.loc[game_data_season.home_team == team, 'home_last_rating'] = rating
     game_data_season.loc[game_data_season.away_team == team, 'away_last_rating'] = rating
 
-  for p in range(3):
+  for p in range(4):
     ratings_calc(sos_season, nn_list[-1], game_data_season)
     sos_calc(sos_season, game_data_season)
     print(sos_season.sort_values(sos_season.columns[-1],ascending=False).reset_index(drop=True).head(30))
