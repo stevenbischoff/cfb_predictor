@@ -3,7 +3,7 @@ import pandas as pd
 import copy
     
 class NeuralNet():
-  def __init__(self, n, learn_rate = 0.0001, season_discount = 0, tol = 0.0001): 
+  def __init__(self, n, week, learn_rate = 0.0001, season_discount = 0, tol = 0.0001): 
     
     """
     Initializes a neural network
@@ -13,7 +13,7 @@ class NeuralNet():
       n: int
         The number of inputs
       learn_rate: float
-      season_discount: float
+      season_discount: int or float
         If non-zero, discounts less recent seasons during training and error calculation
         A season's contribution to the total loss function is multiplied by season_discount * (last_season - season).
         So if season_discount = 0.05 and the last season is 2019, the loss from 2016 is discounted by 15%.
@@ -24,25 +24,29 @@ class NeuralNet():
     Attributes
     ----------
       self.m, self.a
-        Predicted spread is self.m * (home_rating - away_rating) + self.a.
+        Predicted spread is self.m * (home_rating - away_rating) + self.a
         self.a is trained.
       self.best_test_error
         Stores the best test set error so far during training
       self.n_worse
-        How many consecutive rounds the test error has failed to improve by tol.
+        How many consecutive rounds the test error has failed to improve by tol
       self.switch
-        If set to 0, training for self is paused or finished.
+        If set to 0, training for self is paused or finished
+      self.week
+        The week that the Neural Net is trained to predict
     """
     
     self.learn = learn_rate
     self.season_discount = season_discount
     self.tol = tol
+
+    self.week = week
     
     self.W1 = np.random.normal(scale=0.00001, size=[n,n//2]).astype('float32')
     self.W2 = np.random.normal(scale=0.00001, size=[n//2,]).astype('float32')
     self.b1 = np.random.normal(scale=0.0001, size=[n//2,]).astype('float32')
     self.b2 = np.random.normal(scale=0.0001)
-    self.m = 100
+    self.m = 80
     self.a = 2.0
 
     self.train_error = 0.0
@@ -52,15 +56,15 @@ class NeuralNet():
     self.switch = 1
 
     
-  def feedforward_train(self, X1):
+  def feedforward_train(self, X):
     """
     Returns a team's rating and the hidden layer array, which is required for backpropagation
     ----------
     Parameters
-      X1: array
     ----------
+      X1: array
     """
-    F1 = sigmoid(np.dot(self.W1.T, X1) + self.b1)
+    F1 = sigmoid(np.dot(self.W1.T, X) + self.b1)
     return sigmoid(np.dot(self.W2, F1) + self.b2), F1
 
 
@@ -76,6 +80,7 @@ class NeuralNet():
     Returns a predicted spread. The prediction adds a home field advantage iff the game is not played on a neutral field.
     ----------
     Parameters
+    ----------
       s1, s2: float
         Home rating, away rating
       neutral: bool
@@ -96,7 +101,7 @@ class NeuralNet():
       train: DataFrame
       last_season: int
     """
-    n_cols = len(train.columns) - 12
+    n_cols = (len(train.columns) - 12)//2
     self.total_loss = 0
     self.count = 0
     np.apply_along_axis(self.update, 1, train, last_season, n_cols)
@@ -125,7 +130,7 @@ class NeuralNet():
     if game[2] == None:
       return
 
-    X2 = game[n_cols//2 + 12:].astype('float32')
+    X2 = game[n_cols + 12:].astype('float32')
     s2, F2 = self.feedforward_train(X2)
 
     ds2dm2 = s2*(1 - s2)                
@@ -136,13 +141,13 @@ class NeuralNet():
     dm2dF2 = self.W2
     dF2dG2 = F2*(1 - F2)
     dm2dG2 = dm2dF2*dF2dG2
-    dG2dW1 = X2.reshape((n_cols)//2, 1)
-    dm2dW1 = np.dot(dG2dW1, dm2dG2.reshape(1, n_cols//4))
+    dG2dW1 = X2.reshape(n_cols, 1)
+    dm2dW1 = np.dot(dG2dW1, dm2dG2.reshape(1, n_cols//2))
     ds2dW1 = ds2dm2*dm2dW1
     dm2db1 = dm2dG2
     ds2db1 = ds2dm2*dm2db1
 
-    X1 = game[12:n_cols//2 + 12].astype('float32')
+    X1 = game[12:n_cols + 12].astype('float32')
     s1,F1 = self.feedforward_train(X1)
 
     ds1dm1 = s1*(1 - s1)                
@@ -153,8 +158,8 @@ class NeuralNet():
     dm1dF1 = self.W2
     dF1dG1 = F1*(1 - F1)
     dm1dG1 = dm1dF1*dF1dG1
-    dG1dW1 = X1.reshape(n_cols//2, 1)
-    dm1dW1 = np.dot(dG1dW1, dm1dG1.reshape(1, n_cols//4))
+    dG1dW1 = X1.reshape(n_cols, 1)
+    dm1dW1 = np.dot(dG1dW1, dm1dG1.reshape(1, n_cols//2))
     ds1dW1 = ds1dm1*dm1dW1
     dm1db1 = dm1dG1
     ds1db1 = ds1dm1*dm1db1
@@ -199,7 +204,7 @@ class NeuralNet():
       test: DataFrame
       last_season: int
     """
-    n_cols = len(test.columns) - 12
+    n_cols = (len(test.columns) - 12)//2
     self.test_loss = 0
     self.count = 0
     np.apply_along_axis(self.game_error, 1, test, last_season, n_cols)
@@ -215,8 +220,8 @@ class NeuralNet():
     elif game[2] == None:
       return
     
-    X1 = game[12:n_cols//2 + 12].astype('float32')
-    X2 = game[n_cols//2 + 12:].astype('float32')
+    X1 = game[12:n_cols + 12].astype('float32')
+    X2 = game[n_cols + 12:].astype('float32')
     
     s1 = self.feedforward_ratingscalc(X1)
     s2 = self.feedforward_ratingscalc(X2)
@@ -257,9 +262,9 @@ class NeuralNet():
         
 def sigmoid(x):
   return 1 / (1 + np.exp(-x))
- 
-    
-def ratings_calc(sos, nn, game_data):
+
+
+def ratings_calc(ratings_dict, nn, game_data):
   """
   Calculates the final ratings for every FBS team and updates the last season ratings in game_data 
   Each team's final statistics are stored in a "week 20" row of game_data
@@ -273,10 +278,10 @@ def ratings_calc(sos, nn, game_data):
   last_season = max(game_data.season)
   game_data1 = game_data[game_data.week == 20]
   col_cutoff = (len(game_data1.columns)-12)//2 + 12
-  np.apply_along_axis(team_rating, 1, game_data1, sos, game_data, nn, col_cutoff, last_season)
+  np.apply_along_axis(team_rating, 1, game_data1, ratings_dict, game_data, nn, col_cutoff, last_season)
 
 
-def team_rating(tg, sos, game_data, nn, col_cutoff, last_season):
+def team_rating(tg, ratings_dict, game_data, nn, col_cutoff, last_season):
   """
   Calculates a team's final rating for a particular season. Updates the SOS dataframe with this information, and also updates
   the last_rating information in game_data iff the season is less than last_season
@@ -292,45 +297,29 @@ def team_rating(tg, sos, game_data, nn, col_cutoff, last_season):
   season = tg[4]
 
   s1 = nn.feedforward_ratingscalc(tg[12:col_cutoff].astype('float32'))  
-  sos.loc[sos.Team == team, str(season)+'Rating'] = s1
+  ratings_dict[team][str(season)+'Rating'] = s1
   if season < last_season:
-    game_data.loc[((game_data.home_team == team)&(game_data.season == season+1)),
+    game_data.at[((game_data.home_team == team)&(game_data.season == season + 1)),
                   'home_last_rating'] = s1
-    game_data.loc[((game_data.away_team == team)&(game_data.season == season+1)),
+    game_data.at[((game_data.away_team == team)&(game_data.season == season + 1)),
                   'away_last_rating'] = s1
 
-    
-def sos_calc(sos, game_data):
+
+def sos_calc(ratings_dict, game_data, first_season, last_season):
   """
-  For each team, performs Strength of Schedule (SOS) calculations for each season for which they were in the FBS
+  For each team, performs Strength of Schedule (sos_dict) calculations for each season for which they were in the FBS
   This function takes up a majority of training time, and I'm always looking for ways to improve its speed.
   """
-  first_season = min(game_data.season)
-  np.apply_along_axis(team_sos,1,sos,sos,game_data,first_season)
-
-
-def team_sos(team_info, sos, game_data, first_season):
-  """
-  Performs SOS calculations for each season the team is in the FBS
-  The team's SOS rating for a particular week is the average of the ratings of every team played prior to that week.
-  """
-  team = team_info[0]
-  team_games = game_data[(game_data.home_team == team)|
-                         (game_data.away_team == team)]
-  season=first_season
-  for info in team_info[1:len(team_info)//2+1]:
-    if info!='FCS':
-      tg = team_games[team_games.season == season].sort_values('week')
-      opps = tg.iloc[-1].home_opponents[:-1]
-      a = np.array(
-        [sos.loc[sos.Team == opp, str(season)+'Rating'].values[0] for opp in opps]) 
-      b=pd.Series(np.concatenate([[0.5],np.cumsum(a)/np.arange(1,len(a)+1)]),
-                  tg.index,
-                  dtype='float32')
-      
-      tg_home_index = tg[tg.home_team==team].index
-      tg_away_index = tg[tg.away_team==team].index
-      game_data.loc[tg_home_index,'home_SOS'] = b.loc[tg_home_index]
-      game_data.loc[tg_away_index,'away_SOS'] = b.loc[tg_away_index]
-      
-    season+=1
+  for team in ratings_dict.keys():
+    team_games = game_data[(game_data.home_team == team)|(game_data.away_team == team)]
+    for season in range(first_season, last_season + 1):
+      if ratings_dict[team][str(season)+'League'] != 'FCS':
+        tg = team_games[team_games.season == season].sort_values('week')
+        opps = tg.iloc[-1].home_opponents[:-1]
+        a = np.array([ratings_dict[opp][str(season) + 'Rating'] for opp in opps]) 
+        avg_sos = pd.Series(np.concatenate([[0.5], np.cumsum(a)/np.arange(1, len(a) + 1)]), tg.index)
+        
+        tg_home_index = tg[tg.home_team==team].index
+        tg_away_index = tg[tg.away_team==team].index
+        game_data.at[tg_home_index,'home_SOS'] = avg_sos.loc[tg_home_index]
+        game_data.at[tg_away_index,'away_SOS'] = avg_sos.loc[tg_away_index]

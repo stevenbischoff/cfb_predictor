@@ -10,7 +10,7 @@ def data_gather(first_season, last_season, data_type = 'adv', verbose = True):
   Parameters
   ----------
     first_season, last_season: int
-      The function gathers statistics from the years in the range [first_season, last_season]
+      The function gathers statistics from the years in the range [first_season, last_season].
     data_type: str
       The type of statistics to be prepared. Right now, the function only works for "advanced" statistics.
       I plan to add the ability to gather and prepare "regular" statistics as well.
@@ -24,11 +24,9 @@ def data_gather(first_season, last_season, data_type = 'adv', verbose = True):
      - e.g. a team's offensive efficiency statistic in its 5th game will be the average of its offensive efficiency statistics
        from games 1-4.
    - Normalizes the talent ratings and cumulative statistics
-   - Initializes SOS and last season ratings
-   - Sets the teams' last_ratings for the first season equal to their S&P+ ratings from first_season - 1   
+   - Initializes SOS and last season ratings   
   """
-  tot = pd.DataFrame()
-
+  total = pd.DataFrame()
   for season in range(first_season, last_season + 1):
     if verbose == True:
       print(season)
@@ -72,21 +70,20 @@ def data_gather(first_season, last_season, data_type = 'adv', verbose = True):
         ignore_index = True)
 
       team_season_data = season_data[season_data.team==team]
-      n_games = len(team_season_data) - 1
-      tsd_index = team_season_data.index
       opponents = list(team_season_data.opponent)
-
       game_data = game_data.append(
-        pd.Series([team,team]+[None]*2+[season, 20]+[None]*4+[opponents]+[None], index = game_cols),
+        pd.Series([team]*2+[None]*2+[season, 20]+[None]*4+[opponents]+[None], index = game_cols),
         ignore_index=True)
 
-      game_range = np.arange(1, n_games+1)      
+      n_games = len(team_season_data) - 1
+      game_range = np.arange(1, n_games+1)
+      tsd_index = team_season_data.index      
       for col in season_cols[3:-1]:
         a = team_season_data[col][:-1]
-        season_data.loc[tsd_index, col] = pd.Series(np.concatenate([[0.5], np.cumsum(a)/game_range]),
+        season_data.at[tsd_index, col] = pd.Series(np.concatenate([[0.5], np.cumsum(a)/game_range]),
           index = tsd_index)
         
-      season_data.loc[tsd_index, 'games'] = pd.Series([i/n_games for i in range(n_games + 1)],
+      season_data.at[tsd_index, 'games'] = pd.Series([i/n_games for i in range(n_games + 1)],
           index = tsd_index)
 
     talent = talent_scrape(season)
@@ -98,70 +95,79 @@ def data_gather(first_season, last_season, data_type = 'adv', verbose = True):
     game_data = game_data.merge(season_data, left_on = ['home_team','away_team','week'],
                                 right_on = ['team','opponent','week']
                                 ).drop(columns = ['team','opponent'])
+    col_dict = {}
     for col in game_data.columns[12:]:
-      game_data = game_data.rename(columns = {col:'home_'+col})
+      col_dict[col] = 'home_' + col
+    game_data = game_data.rename(columns = col_dict)
 
     game_data = game_data.merge(season_data, left_on = ['away_team','home_team','week'],
                                 right_on = ['team','opponent','week']
                                ).drop(columns = ['team','opponent'])
-    for col in game_data.columns[(len(game_data.columns)-12)//2 + 12:]:
-      game_data = game_data.rename(columns = {col:'away_'+col})
+    col_dict = {}
+    for col in game_data.columns[(len(game_data.columns) - 12)//2 + 12:]:
+      col_dict[col] = 'away_' + col
+    game_data = game_data.rename(columns = col_dict)
 
-    tot = pd.concat([tot,game_data])
+    total = pd.concat([total,game_data])
      
-  tot.insert((len(tot.columns)-12)//2 + 12, 'home_last_rating', 0.5)
-  tot.insert((len(tot.columns)-12)//2 + 12, 'home_SOS', 0.45)
-  tot.insert(len(tot.columns), 'away_last_rating', 0.5)
-  tot.insert(len(tot.columns), 'away_SOS', 0.45)
-
-  sp = sp_scrape(first_season - 1)
-  sp.rating -= min(sp.rating))
-  sp.rating /= max(sp.rating)
-
-  for i in range(len(sp)):
-    team, rating = sp.loc[i, 'team'], sp.loc[i, 'rating']
-    tot.loc[(tot.home_team == team)&(tot.season == first_season), 'home_last_rating'] = rating
-    tot.loc[(tot.away_team == team)&(tot.season == first_season), 'away_last_rating'] = rating
-  
-  tot = tot.sample(frac=1).reset_index(drop=True)
+  total.insert((len(total.columns)-12)//2 + 12, 'home_last_rating', 0.5)
+  total.insert((len(total.columns)-12)//2 + 12, 'home_SOS', 0.45)
+  total.insert(len(total.columns), 'away_last_rating', 0.5)
+  total.insert(len(total.columns), 'away_SOS', 0.45)
     
-  return tot
+  return total
 
 
-def sos_init(game_data, first_season, last_season):  
+def ratings_init(game_data, first_season, last_season):
   """
-  Initializes the SOS DataFrame, which stores end-of-season ratings and is used for SOS calculations
+  Initializes the ratings dictionary that stores a team's ratings and whether they are in FBS or FCS
+  for each season in [first_season, last_season]
+  """
+  teams = set(list(game_data.home_team)+list(game_data.away_team))
+
+  ratings_dict = {}
+  for team in teams:
+    ratings_dict[team] = {}
+    
+  for team in teams:
+    for season in range(first_season, last_season+1):
+      if len(game_data[((game_data.home_team == team)|(game_data.away_team == team))&
+                       (game_data.season == season)]) > 3:
+        ratings_dict[team][str(season) + 'League'] = 'FBS'
+        ratings_dict[team][str(season) + 'Rating'] = 0.5
+      else:
+        ratings_dict[team][str(season) + 'League'] = 'FCS'
+        ratings_dict[team][str(season) + 'Rating'] = 0.15       
+  
+  return ratings_dict
+
+
+def data_init(game_data, first_season, last_season):
+  """
+  Initializes the game_data for training on [first_season, last_season]
   ----------  
   Parameters
   ----------
     game_data: DataFrame
     first_season, last_season: int
+  -----
+  Notes
+  -----
+   - Constrains the data to within [first_season, last_season]
+   - Sets the teams' last_ratings for first_season equal to their S&P+ ratings from first_season - 1
+   - Shuffles game_data
   """
-  teams = list(set(list(game_data.home_team)+list(game_data.away_team)))
+  game_data = game_data.loc[(game_data.season >= first_season)&(game_data.season <= last_season),:].copy()
 
-  sos = pd.DataFrame(index=[i for i in range(len(teams))],
-                     columns=['Team']+[
-                       str(season)+'SOS' for season in range(first_season, last_season+1)]+[
-                         str(season)+'Rating' for season in range(first_season, last_season+1)],
-                     dtype = 'float32')
+  sp = sp_scrape(first_season - 1)
+  sp.rating -= min(sp.rating)
+  sp.rating /= max(sp.rating)
+  for i in range(len(sp)):
+    team, rating = sp.loc[i, 'team'], sp.loc[i, 'rating']
+    game_data.loc[(game_data.home_team == team)&(game_data.season == first_season), 'home_last_rating'] = rating
+    game_data.loc[(game_data.away_team == team)&(game_data.season == first_season), 'away_last_rating'] = rating
 
-  sos['Team'] = teams
-  for season in range(first_season, last_season+1):
-    game_data_season = game_data[game_data.season == season]
-    sos_list = []
-    rating_list = []
-    for team in teams:
-      if len(game_data_season[game_data_season.home_team == team]) > 2 or len(
-        game_data_season[game_data_season.away_team == team]) > 3:
-        sos_list.append(0.45)
-        rating_list.append(0.5)
-      else:
-        sos_list.append('FCS')
-        rating_list.append(0.15)
-    sos[str(season)+'SOS'] = sos_list
-    sos[str(season)+'Rating'] = rating_list
-  
-  return sos
+  return game_data.sample(frac = 1).reset_index(drop = True)
 
 
 def custom_train_test_split(game_data, train_size, first_week, last_week): 
@@ -187,6 +193,7 @@ def custom_train_test_split(game_data, train_size, first_week, last_week):
     ].reset_index(drop=True)
 
   return train, test
+
 
 def games_filter(game_data, season):
   """
