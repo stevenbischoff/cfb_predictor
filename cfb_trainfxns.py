@@ -1,6 +1,8 @@
 import numpy as np
 import pandas as pd
 import copy
+
+global learn_rate_counter, threshold, index_dict
     
 class NeuralNet():
   def __init__(self, n, week, learn_rate = 0.0001, season_discount = 0, tol = 0.0001): 
@@ -49,11 +51,15 @@ class NeuralNet():
     self.m = 80
     self.a = 2.0
 
-    self.train_error = 0.0
-    self.test_error = 0.0
+    self.train_error = None
+    self.test_error = None
     self.best_test_error = 1000
     self.n_worse = 0
     self.switch = 1
+
+
+  def __str__(self):
+    return 'Week: {}'.format(self.week)+' Train Error: {}'.format(round(self.train_error, 5))+' Test Error: {}'.format(round(self.test_error, 5))
 
     
   def feedforward_train(self, X):
@@ -68,7 +74,7 @@ class NeuralNet():
     return sigmoid(np.dot(self.W2, F1) + self.b2), F1
 
 
-  def feedforward_ratingscalc(self, X1):
+  def feedforward_ratingscalculation(self, X1):
     """
     Rating calculation for use when not doing backpropagation
     """
@@ -223,8 +229,8 @@ class NeuralNet():
     X1 = game[12:n_cols + 12].astype('float32')
     X2 = game[n_cols + 12:].astype('float32')
     
-    s1 = self.feedforward_ratingscalc(X1)
-    s2 = self.feedforward_ratingscalc(X2)
+    s1 = self.feedforward_ratingscalculation(X1)
+    s2 = self.feedforward_ratingscalculation(X2)
 
     neutral = game[6]      
     y_pred = self.margin_predict(s1, s2, neutral)
@@ -235,14 +241,15 @@ class NeuralNet():
     self.count += r
     
  
-  def assess(self, counter, threshold): 
+  def assess(self): 
     """
     If self.test_error has not improved by at least tol over 2 consecutive training rounds and a minimum threshold for number of
     of training rounds has been met, set self.switch equal to 0 and restore the best-peforming parameters.
     If self.test_error is below the previous best test_error, resets the number of round without improvement to 0,
     stores the new best error, and stores copies of the current parameters as the current best version of the network
     """
-    if self.test_error > (self.best_test_error - self.tol) and self.n_worse >= 2 and counter >= threshold:
+    global learn_rate_counter, threshold
+    if self.test_error > (self.best_test_error - self.tol) and self.n_worse >= 2 and learn_rate_counter >= threshold:
       self.switch = 0
       self.W1 = copy.deepcopy(self.W1_best)
       self.W2 = copy.deepcopy(self.W2_best)
@@ -264,7 +271,7 @@ def sigmoid(x):
   return 1 / (1 + np.exp(-x))
 
 
-def ratings_calc(ratings_dict, nn, game_data):
+def ratings_calculation(nn, ratings_dict, game_data):
   """
   Calculates the final ratings for every FBS team and updates the last season ratings in game_data 
   Each team's final statistics are stored in a "week 20" row of game_data
@@ -275,13 +282,15 @@ def ratings_calc(ratings_dict, nn, game_data):
     nn: NeuralNet
     game_data: DataFrame
   """
+  start = time.time()
   last_season = max(game_data.season)
   game_data1 = game_data[game_data.week == 20]
   col_cutoff = (len(game_data1.columns)-12)//2 + 12
-  np.apply_along_axis(team_rating, 1, game_data1, ratings_dict, game_data, nn, col_cutoff, last_season)
+  np.apply_along_axis(team_rating, 1, game_data1, nn, ratings_dict, game_data, col_cutoff, last_season)
+  print(time.time()-start)
 
 
-def team_rating(tg, ratings_dict, game_data, nn, col_cutoff, last_season):
+def team_rating(tg, nn, ratings_dict, game_data, col_cutoff, last_season):
   """
   Calculates a team's final rating for a particular season. Updates the SOS dataframe with this information, and also updates
   the last_rating information in game_data iff the season is less than last_season
@@ -293,33 +302,36 @@ def team_rating(tg, ratings_dict, game_data, nn, col_cutoff, last_season):
     nn: NeuralNet
     col_cutoff, last_season: int
   """
+  global index_dict
   team = tg[0]
   season = tg[4]
 
-  s1 = nn.feedforward_ratingscalc(tg[12:col_cutoff].astype('float32'))  
+  s1 = nn.feedforward_ratingscalculation(tg[12:col_cutoff].astype('float32'))  
   ratings_dict[team][str(season)+'Rating'] = s1
   if season < last_season:
-    game_data.at[((game_data.home_team == team)&(game_data.season == season + 1)),
-                  'home_last_rating'] = s1
-    game_data.at[((game_data.away_team == team)&(game_data.season == season + 1)),
-                  'away_last_rating'] = s1
+    season_dict = index_dict[team][season+1]
+    game_data.at[season_dict['home'], 'home_last_rating'] = s1
+    game_data.at[season_dict['away'], 'away_last_rating'] = s1
 
 
-def sos_calc(ratings_dict, game_data, first_season, last_season):
+def sos_calculation(ratings_dict, game_data, first_season, last_season):
   """
-  For each team, performs Strength of Schedule (sos_dict) calculations for each season for which they were in the FBS
+  For each team, performs Strength of Schedule (SOS) calculations for each season for which they were in the FBS
   This function takes up a majority of training time, and I'm always looking for ways to improve its speed.
   """
+  start = time.time()
   for team in ratings_dict.keys():
     team_games = game_data[(game_data.home_team == team)|(game_data.away_team == team)]
     for season in range(first_season, last_season + 1):
       if ratings_dict[team][str(season)+'League'] != 'FCS':
         tg = team_games[team_games.season == season].sort_values('week')
         opps = tg.iloc[-1].home_opponents[:-1]
-        a = np.array([ratings_dict[opp][str(season) + 'Rating'] for opp in opps]) 
+        a = np.array([ratings_dict[opp][str(season) + 'Rating'] for opp in opps])
         avg_sos = pd.Series(np.concatenate([[0.5], np.cumsum(a)/np.arange(1, len(a) + 1)]), tg.index)
         
-        tg_home_index = tg[tg.home_team==team].index
-        tg_away_index = tg[tg.away_team==team].index
-        game_data.at[tg_home_index,'home_SOS'] = avg_sos.loc[tg_home_index]
-        game_data.at[tg_away_index,'away_SOS'] = avg_sos.loc[tg_away_index]
+        tg_home_index = tg[tg.home_team == team].index
+        tg_away_index = tg[tg.away_team == team].index
+        game_data.at[tg_home_index, 'home_SOS'] = avg_sos.loc[tg_home_index]
+        game_data.at[tg_away_index, 'away_SOS'] = avg_sos.loc[tg_away_index]
+  print(time.time()-start)
+import time

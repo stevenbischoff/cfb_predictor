@@ -159,13 +159,13 @@ def data_init(game_data, first_season, last_season):
   """
   game_data = game_data.loc[(game_data.season >= first_season)&(game_data.season <= last_season),:].copy()
 
-  sp = sp_scrape(first_season - 1)
+  """sp = sp_scrape(first_season - 1)
   sp.rating -= min(sp.rating)
   sp.rating /= max(sp.rating)
   for i in range(len(sp)):
     team, rating = sp.loc[i, 'team'], sp.loc[i, 'rating']
     game_data.loc[(game_data.home_team == team)&(game_data.season == first_season), 'home_last_rating'] = rating
-    game_data.loc[(game_data.away_team == team)&(game_data.season == first_season), 'away_last_rating'] = rating
+    game_data.loc[(game_data.away_team == team)&(game_data.season == first_season), 'away_last_rating'] = rating"""
 
   return game_data.sample(frac = 1).reset_index(drop = True)
 
