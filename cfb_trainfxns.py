@@ -1,8 +1,8 @@
 import numpy as np
 import pandas as pd
 import copy
+from cfb_config import *
 
-global learn_rate_counter, threshold, index_dict
     
 class NeuralNet():
   def __init__(self, n, week, learn_rate = 0.0001, season_discount = 0, tol = 0.0001): 
@@ -241,14 +241,13 @@ class NeuralNet():
     self.count += r
     
  
-  def assess(self): 
+  def assess(self, learn_rate_counter, threshold): 
     """
     If self.test_error has not improved by at least tol over 2 consecutive training rounds and a minimum threshold for number of
     of training rounds has been met, set self.switch equal to 0 and restore the best-peforming parameters.
     If self.test_error is below the previous best test_error, resets the number of round without improvement to 0,
     stores the new best error, and stores copies of the current parameters as the current best version of the network
     """
-    global learn_rate_counter, threshold
     if self.test_error > (self.best_test_error - self.tol) and self.n_worse >= 2 and learn_rate_counter >= threshold:
       self.switch = 0
       self.W1 = copy.deepcopy(self.W1_best)
@@ -282,12 +281,10 @@ def ratings_calculation(nn, ratings_dict, game_data):
     nn: NeuralNet
     game_data: DataFrame
   """
-  start = time.time()
   last_season = max(game_data.season)
   game_data1 = game_data[game_data.week == 20]
   col_cutoff = (len(game_data1.columns)-12)//2 + 12
   np.apply_along_axis(team_rating, 1, game_data1, nn, ratings_dict, game_data, col_cutoff, last_season)
-  print(time.time()-start)
 
 
 def team_rating(tg, nn, ratings_dict, game_data, col_cutoff, last_season):
@@ -302,7 +299,6 @@ def team_rating(tg, nn, ratings_dict, game_data, col_cutoff, last_season):
     nn: NeuralNet
     col_cutoff, last_season: int
   """
-  global index_dict
   team = tg[0]
   season = tg[4]
 
@@ -319,19 +315,23 @@ def sos_calculation(ratings_dict, game_data, first_season, last_season):
   For each team, performs Strength of Schedule (SOS) calculations for each season for which they were in the FBS
   This function takes up a majority of training time, and I'm always looking for ways to improve its speed.
   """
-  start = time.time()
   for team in ratings_dict.keys():
-    team_games = game_data[(game_data.home_team == team)|(game_data.away_team == team)]
     for season in range(first_season, last_season + 1):
       if ratings_dict[team][str(season)+'League'] != 'FCS':
-        tg = team_games[team_games.season == season].sort_values('week')
+        season_indices = index_dict[team][season]
+        tg = game_data.loc[season_indices['total']]
         opps = tg.iloc[-1].home_opponents[:-1]
         a = np.array([ratings_dict[opp][str(season) + 'Rating'] for opp in opps])
-        avg_sos = pd.Series(np.concatenate([[0.5], np.cumsum(a)/np.arange(1, len(a) + 1)]), tg.index)
+        avg_sos = pd.Series(np.concatenate([[0.5], np.cumsum(a)/np.arange(1, len(a) + 1)]), season_indices['total'])
         
-        tg_home_index = tg[tg.home_team == team].index
-        tg_away_index = tg[tg.away_team == team].index
-        game_data.at[tg_home_index, 'home_SOS'] = avg_sos.loc[tg_home_index]
-        game_data.at[tg_away_index, 'away_SOS'] = avg_sos.loc[tg_away_index]
-  print(time.time()-start)
-import time
+        game_data.at[season_indices['home'], 'home_SOS'] = avg_sos.loc[season_indices['home']]
+        game_data.at[season_indices['away'], 'away_SOS'] = avg_sos.loc[season_indices['away']]
+
+
+def ratings_sos_calculation(nn, ratings_dict, game_data, first_season, last_season, rounds):
+  """
+  Performs a specified number of ratings and SOS updates.
+  """
+  for r in range(rounds):
+    ratings_calculation(nn, ratings_dict, game_data)        
+    sos_calculation(ratings_dict, game_data, first_season, last_season)

@@ -1,6 +1,7 @@
 import pandas as pd
 import numpy as np
 from cfb_datascrape import *
+from cfb_config import *
 
 
 def data_gather(first_season, last_season, data_type = 'adv', verbose = True):  
@@ -159,15 +160,28 @@ def data_init(game_data, first_season, last_season):
   """
   game_data = game_data.loc[(game_data.season >= first_season)&(game_data.season <= last_season),:].copy()
 
-  """sp = sp_scrape(first_season - 1)
+  sp = sp_scrape(first_season - 1)
   sp.rating -= min(sp.rating)
   sp.rating /= max(sp.rating)
   for i in range(len(sp)):
     team, rating = sp.loc[i, 'team'], sp.loc[i, 'rating']
     game_data.loc[(game_data.home_team == team)&(game_data.season == first_season), 'home_last_rating'] = rating
-    game_data.loc[(game_data.away_team == team)&(game_data.season == first_season), 'away_last_rating'] = rating"""
+    game_data.loc[(game_data.away_team == team)&(game_data.season == first_season), 'away_last_rating'] = rating
 
   return game_data.sample(frac = 1).reset_index(drop = True)
+
+
+def index_dict_init(game_data, first_season, last_season):
+  for team in set(list(game_data.home_team) + list(game_data.away_team)):
+    index_dict[team] = {}
+    for season in range(first_season, last_season+1):
+      home_indices = game_data[(game_data.season == season)&(game_data.home_team == team)].sort_values('week').index
+      away_indices = game_data[(game_data.season == season)&(game_data.away_team == team)].sort_values('week').index
+      total_indices = game_data[(game_data.season == season)&(
+        (game_data.home_team == team)|(game_data.away_team == team))].sort_values('week').index
+      index_dict[team][season] = {'home': home_indices,
+                                  'away': away_indices,
+                                  'total': total_indices}
 
 
 def custom_train_test_split(game_data, train_size, first_week, last_week): 

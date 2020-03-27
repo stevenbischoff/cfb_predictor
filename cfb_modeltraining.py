@@ -3,6 +3,7 @@ import numpy as np
 import copy
 from cfb_trainfxns import *
 from cfb_datafxns import *
+from cfb_config import *
 
 
 def train(first_season, last_season, game_data = 'adv', window = 2, train_size = 0.8, learn_rate = 0.0001, 
@@ -29,28 +30,19 @@ def train(first_season, last_season, game_data = 'adv', window = 2, train_size =
       is multiplied by 1 - season_discount*(final_season - data_point_season).
     verbose: bool
   """
-  global learn_rate_counter, threshold, index_dict
-  learn_rate_counter, threshold, index_dict = 1, 6, {}  
+  global learn_rate_counter, threshold, total_rounds, nn_list 
   
   if type(game_data) == str:
     game_data = data_gather(first_season, last_season, game_data)
 
   game_data = data_init(game_data, first_season, last_season)
   ratings_dict = ratings_init(game_data, first_season, last_season)
-  
-  for team in set(list(game_data.home_team) + list(game_data.away_team)):
-    index_dict[team] = {}
-    for season in range(first_season, last_season+1):
-      home_indices = game_data[(game_data.season == season)&(game_data.home_team == team)].index
-      away_indices = game_data[(game_data.season == season)&(game_data.away_team == team)].index
-      index_dict[team][season] = {'home': home_indices, 'away': away_indices}
-      
-  
-  nn_list = []
+  index_dict_init(game_data, first_season, last_season)
+
+  nn_list = []     
   for i in range(1,14):
     nn_list.append(NeuralNet((len(game_data.columns)-12)//2, i, learn_rate, season_discount, tol))   
 
-  total_rounds = 1
   for change in range(n_learn_rate_changes + 1):    
     if verbose == True and change > 0:
       print('Learn Rate Change', change)
@@ -58,10 +50,11 @@ def train(first_season, last_season, game_data = 'adv', window = 2, train_size =
       if verbose == True:
         print('Round', total_rounds)
         total_rounds += 1
-      nn_list, game_data, ratings_dict = training_round(nn_list, game_data, ratings_dict, train_size, first_season, last_season, window, verbose)        
+      nn_list, game_data, ratings_dict = training_round(nn_list, game_data, ratings_dict, train_size, first_season, last_season,
+                                                        window, learn_rate_counter, threshold, verbose)        
       learn_rate_counter += 1     
     threshold = max(1, threshold - 1)
-    counter = 1
+    learn_rate_counter = 1
     for nn in nn_list:
       nn.switch = 1
       nn.n_worse = 0
@@ -75,9 +68,7 @@ def train(first_season, last_season, game_data = 'adv', window = 2, train_size =
   return nn_list, game_data, ratings_dict
 
 
-def training_round(nn_list, game_data, ratings_dict, train_size, first_season, last_season, window, verbose):
-  global learn_rate_counter, threshold
-  print(learn_rate_counter)
+def training_round(nn_list, game_data, ratings_dict, train_size, first_season, last_season, window, learn_rate_counter, threshold, verbose):
   for week in range(1,14):
     nn = nn_list[week-1]
     if nn.switch > 0:
@@ -89,7 +80,7 @@ def training_round(nn_list, game_data, ratings_dict, train_size, first_season, l
 
       nn.epoch(train, last_season)     
       nn.error_check(test, last_season)
-      nn.assess()
+      nn.assess(learn_rate_counter, threshold)
 
       if verbose == True:
         print(nn)
@@ -105,15 +96,8 @@ def model_test(nn_list, tot, game_data, ratings, season, verbose = True):
   Assuming the model was trained on data up to final_season, this function tests the model on final_season + 1.
   """
   game_data_season = tot.loc[(tot.season == season),:].copy()
-  ratings_season = ratings_init(game_data_season, season, season)
-  
-  index_dict = {}
-  for team in set(list(game_data_season.home_team) + list(game_data.away_team)):
-    index_dict[team] = {}
-    for season in range(season, season+1):
-      home_indices = game_data_season[(game_data_season.season == season)&(game_data_season.home_team == team)].index
-      away_indices = game_data_season[(game_data_season.season == season)&(game_data_season.away_team == team)].index
-      index_dict[team][season] = {'home': home_indices, 'away': away_indices}
+  ratings_season = ratings_init(game_data_season, season, season)  
+  index_dict_init(game_data_season, season, season)
   
   for team in ratings.keys():
     rating = ratings[team][str(season-1) + 'Rating']
@@ -137,19 +121,3 @@ def model_test(nn_list, tot, game_data, ratings, season, verbose = True):
     print('Total Error:',sum([nn.test_loss for nn in nn_list])/sum([nn.count for nn in nn_list]))
 
   return game_data_season, ratings_season, nn_list
-
-
-def ratings_sos_calculation(nn, ratings_dict, game_data, first_season, last_season, rounds):
-  """
-  Performs a specified number of ratings and SOS updates.
-  """
-  for r in range(rounds):
-    ratings_calculation(nn, ratings_dict, game_data)        
-    sos_calculation(ratings_dict, game_data, first_season, last_season)
-
-
-tot = pd.read_pickle(
-  r'C:\Users\Visitor\AppData\Local\Programs\Python\Python38-32\cfbdata\cfb619_seasondata.pkl')
-
-nn_list, game_data, ratings = train(2013, 2018, game_data = tot, learn_rate = 0.00008, season_discount = 0)
-gds, ratingss, nn_list = model_test(nn_list, tot, game_data, ratings, 2019)
