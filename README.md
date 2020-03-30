@@ -20,3 +20,6 @@ With this in mind, the model actually uses multiple neural networks, one each fo
 The model is trained by predicting final spreads (home team points - away team points). To make a prediction, the model calculates a rating (between 0 and 1) for the home and away teams. The predicted spread is 100*(home team rating - away team rating) + _a_, where _a_ represents home-field advantage and is trained simultaneously with the ratings neural networks. Training uses backpropagation, specifically stochastic gradient descent with early stopping.  
 
 The neural network for week _w_ is trained using data from an adjustable window around _w_.
+
+## Results
+Trained on the 2045-2018 seasons, the model regularly achieve a mean absolute error of < 13 points when predicting the spread of FBS games in the 2019 season. For comparison with other rating systems, follow this link: http://www.thepredictiontracker.com/ncaaresults.php?orderby=absdev&type=1&year=19 . The below tables display the model's best and worst predictions.
