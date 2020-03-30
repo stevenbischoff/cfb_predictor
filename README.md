@@ -26,3 +26,6 @@ Trained on the 2045-2018 seasons, the model regularly achieve a mean absolute er
 
 The below tables display the model's best and worst predictions:
 
+![Best Predictions](best.png)
+
+![Worst Predictions](worst.png)
