@@ -239,6 +239,81 @@ class NeuralNet():
     r = 1 - self.season_discount*(last_season - season)
     self.test_loss += r*abs(game[7] - y_pred)
     self.count += r
+
+
+  def error_check1(self, test, last_season, results):
+    """
+    Calculates the total error of a set of datapoints without performing backpropagation
+    ----------
+    Parameters
+    ----------
+      test: DataFrame
+      last_season: int
+    """
+    n_cols = (len(test.columns) - 12)//2
+    self.test_loss = 0
+    self.count = 0
+    #np.apply_along_axis(self.game_error1, 1, test, last_season, n_cols, results)
+    for i in range(len(test)):
+      game = test.iloc[i]
+      if game[3] == None:
+        continue
+      elif game[2] == None:
+        continue
+      
+      X1 = game[12:n_cols + 12].astype('float32')
+      X2 = game[n_cols + 12:].astype('float32')
+      
+      s1 = self.feedforward_ratingscalculation(X1)
+      s2 = self.feedforward_ratingscalculation(X2)
+
+      neutral = game[6]      
+      y_pred = self.margin_predict(s1, s2, neutral)
+
+      season = game[4]
+      r = 1 - self.season_discount*(last_season - season)
+      self.test_loss += r*abs(game[7] - y_pred)
+      self.count += r
+
+      results = results.append(
+          pd.Series([game[0],game[1],neutral,game[5],int(game[7]),
+                     round(y_pred, 3),round(abs(game[7]-y_pred),3)],
+                    index = results.columns),
+          ignore_index = True)
+      
+    #print(results.tail(10).to_string())
+    self.test_error = self.test_loss/self.count
+    return results
+  
+
+  def game_error1(self, game, last_season, n_cols, results):
+    """
+    Same as self.update without backpropagation
+    """
+    if game[3] == None:
+      return
+    elif game[2] == None:
+      return
+    
+    X1 = game[12:n_cols + 12].astype('float32')
+    X2 = game[n_cols + 12:].astype('float32')
+    
+    s1 = self.feedforward_ratingscalculation(X1)
+    s2 = self.feedforward_ratingscalculation(X2)
+
+    neutral = game[6]      
+    y_pred = self.margin_predict(s1, s2, neutral)
+
+    season = game[4]
+    r = 1 - self.season_discount*(last_season - season)
+    self.test_loss += r*abs(game[7] - y_pred)
+    self.count += r
+
+    results = results.append(
+        pd.Series([game[0],game[1],neutral,game[7],y_pred,abs(game[7]-y_pred)],
+                  index = results.columns),
+        ignore_index = True)
+    print(results)
     
  
   def assess(self, learn_rate_counter, threshold): 
