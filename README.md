@@ -22,7 +22,7 @@ The model is trained by predicting final spreads (home team points - away team p
 The neural network for week _w_ is trained using data from an adjustable window around _w_.
 
 ## Results
-Trained on the 2014-2018 seasons, the model regularly achieve a mean absolute error of < 13 points when predicting the spread of FBS games in the 2019 season. For comparison with other rating systems, follow this link: http://www.thepredictiontracker.com/ncaaresults.php?orderby=absdev&type=1&year=19 . 
+Trained on the 2014-2018 seasons, the model regularly achieve a mean absolute error of <13 points when predicting the spread of FBS games in the 2019 season. For comparison with other rating systems, follow this link: http://www.thepredictiontracker.com/ncaaresults.php?orderby=absdev&type=1&year=19 . 
 
 The below tables display the best and worst 2019 predictions of a model trained on 2014-2018:
 
