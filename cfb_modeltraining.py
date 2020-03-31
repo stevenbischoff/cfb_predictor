@@ -106,7 +106,7 @@ def model_test(nn_list, tot, game_data, ratings, season, verbose = True):
 
   ratings_sos_calculation(nn_list[-1], ratings_season, game_data_season, season, season, 4)
 
-  results = pd.DataFrame(columns = ['Home Team', 'Away Team', 'Neutral', 'Week', 'Actual Spread', 'Pred. Spread', 'Abs. Error'])
+  results = pd.DataFrame(columns = ['Home Team', 'Away Team', 'Week', 'Actual Spread', 'Pred. Spread', 'Abs. Error'])
 
   for i in range(1, 14):
     nn = nn_list[i-1]
