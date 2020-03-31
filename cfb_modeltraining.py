@@ -106,8 +106,6 @@ def model_test(nn_list, tot, game_data, ratings, season, verbose = True):
 
   ratings_sos_calculation(nn_list[-1], ratings_season, game_data_season, season, season, 4)
 
-  results = pd.DataFrame(columns = ['Home Team', 'Away Team', 'Week', 'Actual Spread', 'Pred. Spread', 'Abs. Error'])
-
   for i in range(1, 14):
     nn = nn_list[i-1]
     if i == 1:
@@ -116,10 +114,10 @@ def model_test(nn_list, tot, game_data, ratings, season, verbose = True):
       game_data_temp = game_data_season[(game_data_season.week >= 13)&(game_data_season.week < 20)].reset_index(drop=True)
     else:
       game_data_temp = game_data_season[game_data_season.week == i].reset_index(drop=True)
-    results = nn.error_check1(game_data_temp, season, results)
+    results = nn.error_check(game_data_temp, season)
     if verbose == True:
       print('Week:', i, 'Error:', nn.test_loss/nn.count, nn.count)
   if verbose == True:
     print('Total Error:',sum([nn.test_loss for nn in nn_list])/sum([nn.count for nn in nn_list]))
 
-  return game_data_season, ratings_season, nn_list, results
+  return game_data_season, ratings_season, nn_list
