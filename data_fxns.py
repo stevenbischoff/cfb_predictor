@@ -1,6 +1,6 @@
 import pandas as pd
 import numpy as np
-from cfb_datascrape import *
+import data_scrape
 import train_fxns
 import cfg
 
@@ -33,7 +33,7 @@ def data_gather(first_season, last_season, data_type = 'adv', verbose = True):
     if verbose == True:
       print(season)
 
-    games = games_scrape(season)
+    games = data_scrape.games_scrape(season)
     games = games_filter(games, season)
     game_data = pd.DataFrame({'home_team':games.home_team,
                               'away_team':games.away_team,
@@ -51,11 +51,11 @@ def data_gather(first_season, last_season, data_type = 'adv', verbose = True):
                             )
 
     if data_type == 'adv':
-      season_data = adv_data_scrape(season).drop(columns = ['gameId']).sort_values(
-        'week').fillna(0)
+      season_data = data_scrape.adv_data_scrape(season).drop(
+        columns = ['gameId']).sort_values('week').fillna(0)
     elif data_type == 'reg':
-      season_data = reg_data_scrape(season).drop(columns = ['gameId']).sort_values(
-        'week').fillna(0)
+      season_data = data_scrape.reg_data_scrape(season).drop(
+        columns = ['gameId']).sort_values('week').fillna(0)
       
     for col in season_data.columns[3:]:
       season_data[col] -= min(season_data[col])
@@ -88,7 +88,7 @@ def data_gather(first_season, last_season, data_type = 'adv', verbose = True):
       season_data.at[tsd_index, 'games'] = pd.Series([i/n_games for i in range(n_games + 1)],
           index = tsd_index)
 
-    talent = talent_scrape(season)
+    talent = data_scrape.talent_scrape(season)
     talent.talent = talent.talent.astype('float32')
     talent.talent -= min(talent.talent)
     talent.talent /= max(talent.talent)
