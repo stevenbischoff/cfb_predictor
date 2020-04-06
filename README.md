@@ -26,5 +26,5 @@ Trained on the 2014-2018 seasons, the model regularly achieve a mean absolute er
 
 The below tables display the best and worst 2019 predictions of a model trained on 2014-2018:
 
-![Best Predictions](best.png)
-![Worst Predictions](worst.png)
+![Best Predictions](images/best.png)
+![Worst Predictions](images/worst.png)
