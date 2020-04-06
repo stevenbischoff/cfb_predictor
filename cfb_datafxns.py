@@ -172,6 +172,11 @@ def data_init(game_data, first_season, last_season):
 
 
 def index_dict_init(game_data, first_season, last_season):
+  """
+  For each team and season, the index_dict stores game_data indices: team -> season -> [home_indices, away_indices, total_indices].
+  Since updating a Pandas DataFrame by index is much faster than updating by condition, this allows the SOS and last_rating 
+  updates to be much faster.
+  """
   for team in set(list(game_data.home_team) + list(game_data.away_team)):
     index_dict[team] = {}
     for season in range(first_season, last_season+1):
