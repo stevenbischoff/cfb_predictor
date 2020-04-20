@@ -62,7 +62,7 @@ def talent_scrape(season):
   """
   Returns a DataFrame with team talent ratings for the season.
    - For seasons 2015+, returns the 247 composite talent ratings for that season.
-   - For seasons before 2015, the composite is unavailable, so the function returns the sum of the recruiting class
+   - For seasons before 2015 the composite is unavailable, so the function returns the sum of the recruiting class
      ratings for the past four years. 
   """  
   if season >= 2015:
