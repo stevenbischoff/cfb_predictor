@@ -2,6 +2,15 @@
 Rating college football teams
 
 ## Installation
+Can be installed from PyPi using pip install cfb_predictor
+
+## Usage
+The following will train the model on the 2013-2018 seasons before testing it on the 2019 season. The per-week errors and the total 2019 error will be printed.
+```python
+import cfb_predictor as cfb
+cfb.model_training.train(2013, 2018)
+cfb.model_testing.model_test(2019)
+```
 
 ## Rating system
 The model rates college football teams using neural networks with one hidden layer. The model has been built from scratch in Python, using only pandas, numpy, and Python's built-in packages.
@@ -24,7 +33,6 @@ The neural network for week _w_ is trained using data from an adjustable window 
 ## Results
 Trained on the 2014-2018 seasons, the model regularly achieve a mean absolute error of <13 points when predicting the spread of FBS games in the 2019 season. For comparison with other rating systems, follow this link: http://www.thepredictiontracker.com/ncaaresults.php?orderby=absdev&type=1&year=19 . 
 
-The below tables display the best and worst 2019 predictions of a model trained on 2014-2018:
+The below tables display the best 2019 predictions of a model trained on the 2014-2018 seasons:
 
 ![Best Predictions](images/best.png)
-![Worst Predictions](images/worst.png)
