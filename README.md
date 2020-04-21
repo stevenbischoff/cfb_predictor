@@ -26,7 +26,7 @@ As the season progresses, the importance of different types of inputs for predic
 With this in mind, the model actually uses multiple neural networks, one each for weeks 1-13+. Though this comes with a cost of a smaller training set for the individual neural networks, I've found that this does lead to better peformance than a single neural network for every week. 
 
 ## Training
-The model is trained by predicting final spreads (home team points - away team points). To make a prediction, the model calculates a rating (between 0 and 1) for the home and away teams. The predicted spread is 100*(home team rating - away team rating) + _a_, where _a_ represents home-field advantage and is trained simultaneously with the ratings neural networks. Training uses backpropagation, specifically stochastic gradient descent with early stopping.  
+The model is trained by predicting final spreads (home team points - away team points). To make a prediction, the model calculates ratings between 0 and 1 for the home and away teams. The predicted spread is 80*(home team rating - away team rating) + _a_, where _a_ represents home-field advantage and is trained simultaneously with the ratings neural networks. Training uses backpropagation, specifically stochastic gradient descent with early stopping.  
 
 The neural network for week _w_ is trained using data from an adjustable window around _w_.
 
