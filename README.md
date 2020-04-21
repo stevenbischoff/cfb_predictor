@@ -5,7 +5,7 @@ Rating college football teams
 Can be installed from PyPi using pip install cfb_predictor
 
 ## Usage
-The following will train the model on the 2013-2018 seasons before testing it on the 2019 season. The per-week errors and the total 2019 error will be printed.
+The following will scrape and preprocess data from the 2013-2018 seasons, train the model on that data, and test the model on the 2019 season. The per-week errors and the total 2019 error will be printed.
 ```python
 import cfb_predictor as cfb
 cfb.model_training.train(2013, 2018)
