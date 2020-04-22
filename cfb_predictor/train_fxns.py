@@ -2,7 +2,7 @@ import numpy as np
 import pandas as pd
 import copy
 from itertools import accumulate as acc
-import cfg
+import cfb_predictor.cfg as cfg
 
 
 def ratings_sos_calculation(nn, game_data, n_rounds):

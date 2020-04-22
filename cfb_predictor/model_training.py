@@ -1,15 +1,15 @@
 import pandas as pd
 import numpy as np
 import copy
-import train_fxns
-import data_fxns
-import neural_network
-import cfg
-import model_testing
+import cfb_predictor.train_fxns as train_fxns
+import cfb_predictor.data_fxns as data_fxns
+import cfb_predictor.neural_network as neural_network
+import cfb_predictor.cfg as cfg
+import cfb_predictor.model_testing as model_testing
 
 def train(first_season, last_season, game_data = 'adv', window = 2, train_size = 0.8, learn_rate = 0.00005, 
           tol = 0.001, n_learn_rate_changes = 2, season_discount = 0.0, week_discount = 0.0, pca = False,
-          verbose = True):
+          verbose = False):
   """
   The full training algorithm
   ----------
@@ -37,7 +37,7 @@ def train(first_season, last_season, game_data = 'adv', window = 2, train_size =
   cfg.init(week_discount, first_season, last_season)
   
   if type(game_data) == str:
-    game_data = data_fxns.data_gather(game_data)
+    game_data = data_fxns.data_gather(game_data, verbose)
 
   game_data = data_fxns.data_init(game_data, pca)
   cfg.n_cols = (len(game_data.columns)-13)//2

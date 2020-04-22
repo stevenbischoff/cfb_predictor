@@ -4,3 +4,4 @@ import cfb_predictor.data_scrape
 import cfb_predictor.neural_network
 import cfb_predictor.train_fxns
 import cfb_predictor.model_training
+import cfb_predictor.model_testing

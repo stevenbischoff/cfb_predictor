@@ -1,8 +1,8 @@
 import numpy as np
 import pandas as pd
 import copy
-import data_fxns
-import cfg
+import cfb_predictor.data_fxns as data_fxns
+import cfb_predictor.cfg as cfg
 
 class NeuralNet():
   def __init__(self, week, window = 2, learn_rate = 0.0001, season_discount = 0, tol = 0.0001):     

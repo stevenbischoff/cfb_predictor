@@ -1,9 +1,9 @@
 import pandas as pd
 import numpy as np
 from itertools import accumulate as acc
-import data_scrape
-import neural_network
-import cfg
+import cfb_predictor.data_scrape as data_scrape
+import cfb_predictor.neural_network as neural_network
+import cfb_predictor.cfg as cfg
 
 
 def data_gather(data_type = 'adv', verbose = True):  
