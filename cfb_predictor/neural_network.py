@@ -227,12 +227,9 @@ class NeuralNet():
       return
     elif game[3] == None:
       return
-    
-    X1 = game[13:cfg.n_cols + 13].astype('float32')
-    X2 = game[cfg.n_cols + 13:].astype('float32')
-    
-    s1 = self.feedforward(X1)
-    s2 = self.feedforward(X2)
+      
+    s1 = self.feedforward(game[13:cfg.n_cols + 13].astype('float32'))
+    s2 = self.feedforward(game[cfg.n_cols + 13:].astype('float32'))
      
     y_pred = self.margin_predict(s1, s2, game[7])
 
