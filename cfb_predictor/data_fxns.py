@@ -6,7 +6,7 @@ import neural_network
 import cfg
 
 
-def data_gather(first_season, last_season, data_type = 'adv', verbose = True):  
+def data_gather(data_type = 'adv', verbose = True):  
   """
   Returns a DataFrame of cumulative statistics that the model can be trained on.
   ----------  
@@ -24,16 +24,16 @@ def data_gather(first_season, last_season, data_type = 'adv', verbose = True):
   The function performs several tasks:
    - Scrapes game information, per-game statistics, and talent ratings
    - Calculates each team's cumulative per-game statistics
-     - e.g. a team's offensive efficiency statistic in its 5th game will be the average of its offensive efficiency statistics
+     - e.g. a team's offensive efficiency statistic in its 5th game will be the mean of its offensive efficiency statistics
        from games 1-4.
    - Normalizes the talent ratings and cumulative statistics
    - Initializes SOS and last season ratings
    - It is admittedly messy
   """
   total = pd.DataFrame()
-  for season in range(first_season, last_season + 1):
+  for season in range(cfg.first_season, cfg.last_season + 1):
     if verbose == True:
-      print(season)
+      print('Gathering stats from', season)
 
     games = data_scrape.games_scrape(season)
     games = game_data_filter(games, season)
@@ -50,31 +50,24 @@ def data_gather(first_season, last_season, data_type = 'adv', verbose = True):
                               'away_points': games.away_points,
                               'home_opponents': None,
                               'away_opponents': None
-                             }
-                            )
-
-    high_score = max(max(game_data.home_points), max(game_data.away_points))
-    game_data.home_points /= high_score
-    game_data.away_points /= high_score
+                              }
+                             )
 
     if data_type == 'adv':
       season_data = data_scrape.adv_data_scrape(season)
       season_data = adv_season_data_filter(season_data, season).drop(
-        columns = ['gameId']).sort_values('week').fillna(0)
+        columns = ['gameId']).sort_values('week').fillna(season_data.mean())
     elif data_type == 'reg':
       season_data = data_scrape.reg_data_scrape(season).drop(
-        columns = ['gameId']).sort_values('week').fillna(0)
+        columns = ['gameId']).sort_values('week').fillna(season_data.mean())
       
-    for col in season_data.columns[3:]:
-      season_data[col] -= min(season_data[col])
-      season_data[col] /= max(season_data[col])
     n_cols = len(season_data.columns)
-    
+    means = season_data.mean()
+    fbs_teams = set([team for team in season_data.team if len(season_data[season_data.team == team]) > 3])
+
     season_data['offpoints'] = None
     season_data['defpoints'] = None
     season_data['games'] = None
-
-    fbs_teams = set([team for team in season_data.team if len(season_data[season_data.team == team]) > 3])
     
     for team in fbs_teams:
       season_data = season_data.append(
@@ -91,27 +84,24 @@ def data_gather(first_season, last_season, data_type = 'adv', verbose = True):
       game_range_discount = np.array(list(acc([1]*(n_games), lambda x, y: x*cfg.r + y)))
       tsd_index = team_season_data.index      
       for col in season_data.columns[3:-3]:
-        a = team_season_data[col][:-1]
-        season_data.at[tsd_index, col] = pd.Series(np.concatenate([[0.5],
-            np.array(list(acc(a, lambda x, y: x*cfg.r + y)))/game_range_discount]),
-          index = tsd_index)
+        season_data.at[tsd_index, col] = pd.Series(np.concatenate(
+          [[means[col]], np.array(list(acc(team_season_data[col][:-1], lambda x, y: x*cfg.r + y))
+          )/game_range_discount]), index = tsd_index)
         
-      season_data.at[tsd_index, 'games'] = pd.Series([i/n_games for i in range(n_games + 1)],
-          index = tsd_index)
+      season_data.at[tsd_index, 'games'] = pd.Series([i for i in range(n_games + 1)],
+        index = tsd_index)
       
-      season_data.at[tsd_index, 'offpoints'] = pd.Series(np.concatenate([[0.5], np.array(
+      season_data.at[tsd_index, 'offpoints'] = pd.Series(np.concatenate([[30.0], np.array(
         list(acc(game_data.loc[game_data.home_team == team, 'home_points'].append(
           game_data.loc[game_data.away_team == team, 'away_points']
-          ).dropna().sort_index()[:len(tsd_index) - 1], lambda x, y: x*cfg.r + y))
-          )/game_range_discount]),
-        index = tsd_index)
+          ).dropna().sort_index()[:n_games], lambda x, y: x*cfg.r + y))
+          )/game_range_discount]), index = tsd_index)
       
-      season_data.at[tsd_index, 'defpoints'] = pd.Series(np.concatenate([[0.5], np.array(
+      season_data.at[tsd_index, 'defpoints'] = pd.Series(np.concatenate([[30.0], np.array(
         list(acc(game_data.loc[game_data.home_team == team, 'away_points'].append(
           game_data.loc[game_data.away_team == team, 'home_points']
-          ).dropna().sort_index()[:len(tsd_index) - 1], lambda x, y: x*cfg.r + y))
-          )/game_range_discount]),
-        index = tsd_index)
+          ).dropna().sort_index()[:n_games], lambda x, y: x*cfg.r + y))
+          )/game_range_discount]), index = tsd_index)
 
     talent = data_scrape.talent_scrape(season)
     talent.talent = talent.talent.astype('float32')
@@ -144,11 +134,27 @@ def data_gather(first_season, last_season, data_type = 'adv', verbose = True):
     game_data = add_sp_ratings(game_data, season)
 
     total = pd.concat([total, game_data])
+
+  for col in total.columns[13:(len(total.columns)-13)//2 + 10]:
+    custom_normalization(total, col)
+    """home_away = np.concatenate([total[col], total['away_' + col[5:]]])
+    col_min = min(home_away)
+    col_max = max(home_away)
+    total[col] = (total[col] - col_min)/(col_max - col_min)
+    total['away_' + col[5:]] = (total['away_' + col[5:]] - col_min)/(col_max - col_min)"""
     
   return total.reset_index(drop=True)
 
 
 def add_sp_ratings(game_data, season):
+  """
+  Scrapes and adds S&P+ ratings as last_ratings
+  ----------  
+  Parameters
+  ----------
+    game_data: DataFrame
+    season: int
+  """
   sp = data_scrape.sp_scrape(season - 1)
   sp.rating -= min(sp.rating)
   sp.rating /= max(sp.rating)
@@ -160,6 +166,21 @@ def add_sp_ratings(game_data, season):
   return game_data
 
 
+def custom_normalization(game_data, col):
+  """
+  Performs min-max normalization on columns of game_data
+  ----------  
+  Parameters
+  ----------
+    game_data: DataFrame
+    col: str
+  """
+  home_away = np.concatenate([game_data[col], game_data['away_' + col[5:]]])
+  col_min, col_max = min(home_away), max(home_away)
+  game_data[col] = (game_data[col] - col_min)/(col_max - col_min)
+  game_data['away_' + col[5:]] = (game_data['away_' + col[5:]] - col_min)/(col_max - col_min)
+
+
 def ratings_init(game_data):
   """
   Initializes the ratings dictionary that stores a team's ratings and division (FBS or FCS)
@@ -169,6 +190,8 @@ def ratings_init(game_data):
 
   for team in teams:
     cfg.ratings_dict.setdefault(team, {})
+
+  for team in cfg.ratings_dict.keys():
     for season in range(cfg.first_season, cfg.last_season+1):
       if len(game_data[((game_data.home_team == team)|(game_data.away_team == team))&
                        (game_data.season == season)]) > 3:
@@ -201,14 +224,6 @@ def data_init(game_data, pca_components):
     
   game_data = game_data[(game_data.season >= cfg.first_season)&(game_data.season <= cfg.last_season)].copy()
     
-  """sp = data_scrape.sp_scrape(cfg.first_season - 1)
-  sp.rating -= min(sp.rating)
-  sp.rating /= max(sp.rating)
-  for i in range(len(sp)):
-    team, rating = sp.loc[i, 'team'], sp.loc[i, 'rating']
-    game_data.loc[(game_data.home_team == team)&(game_data.season == cfg.first_season), 'home_last_rating'] = rating
-    game_data.loc[(game_data.away_team == team)&(game_data.season == cfg.first_season), 'away_last_rating'] = rating
-  """ 
   return game_data.sample(frac = 1).reset_index(drop = True)
 
 
@@ -271,6 +286,7 @@ def nn_list_init(learn_rate, season_discount, tol, window):
   """
   for i in range(1,14):
     cfg.nn_list.append(neural_network.NeuralNet(i, window, learn_rate, season_discount, tol))
+  cfg.nn_list.reverse()
 
 
 def custom_train_test_split(game_data, train_size, first_week, last_week): 
@@ -326,10 +342,11 @@ def adv_season_data_filter(season_data, season):
     season_data: DataFrame
     season: int
   """
-  if season == 2013:
-    t = [333332117, 333060070]
-    season_data = season_data.drop(index = season_data[season_data.gameId.isin(t)].index)
-  elif season == 2014:
+  season_data = season_data[(season_data['offense.drives'] > 5)&(season_data['defense.drives'] > 5)&
+                            (season_data['offense.plays'] > 29)&(season_data['defense.plays'] > 29)
+                            ].copy().reset_index(drop = True)
+  
+  if season == 2014:
     season_data.loc[(season_data.team == 'Stanford')&(season_data.opponent == 'UC Davis'),
                     'offense.drives'] = 14
     season_data.loc[(season_data.team == 'Stanford')&(season_data.opponent == 'UC Davis'),
@@ -350,10 +367,3 @@ def adv_season_data_filter(season_data, season):
                     'defense.drives'] = 16
     
   return season_data
-
-
-#cfg.init(0.0,2006,2019)
-#import sys
-#data_gather(2006,2019).to_pickle(
- # r'C:\Users\Visitor\AppData\Local\Programs\Python\Python38-32\cfbdata\cfb619_advseasondata.pkl')
-#sys.exit()
